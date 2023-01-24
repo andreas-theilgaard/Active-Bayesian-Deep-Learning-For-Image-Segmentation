@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
+torch.__version__
+
 def find_best_device():
     if torch.cuda.is_available():
         device = torch.device('gpu')
