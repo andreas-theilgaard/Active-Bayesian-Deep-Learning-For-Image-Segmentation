@@ -1,7 +1,19 @@
-Active Bayesian Deep Learning For Image Segmentation_
+Active Bayesian Deep Learning For Image Segmentation
 ==============================
 
 A short description of the project.
+
+## Project Setup
+#### Clone repository
+```
+clone https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation.git
+```
+
+#### Create virtual environment (require Python 3.10)
+Create virtual environment containing the packages used for this project by the following command:
+```
+conda env create -f environment.yml 
+```
 
 Project Organization
 ------------
@@ -53,5 +65,3 @@ Project Organization
 
 
 --------
-
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
