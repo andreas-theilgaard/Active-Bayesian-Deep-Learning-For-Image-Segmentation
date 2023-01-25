@@ -4,9 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
-ged = [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-
-
 def find_best_device():
 
     if torch.cuda.is_available():
