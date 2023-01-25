@@ -1,11 +1,6 @@
 name: "Run Mac OS"
 
 on:
-  [push]
-  pull_request:
-    branches: [ master, main ]
-
-on:
   push:
     branches: [ master, main ]
   pull_request:

@@ -1,9 +1,4 @@
-name: "Run Mac OS"
-
-on:
-  [push]
-  pull_request:
-    branches: [ master, main ]
+name: "Coverage Report"
 
 on:
   push:
