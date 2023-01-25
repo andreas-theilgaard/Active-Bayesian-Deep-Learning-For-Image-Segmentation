@@ -50,6 +50,7 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements_tests.txt
         pip install -r deployment/requirements.txt
-    - name: Test Checks
+    - name: Coverage Report
       run: |
-        coverage run -m pytest -v
+        coverage run -m pytest tests/
+        coverage report -m
