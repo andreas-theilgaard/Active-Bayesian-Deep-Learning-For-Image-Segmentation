@@ -74,6 +74,8 @@ target/
 
 # Jupyter NB Checkpoints
 .ipynb_checkpoints/
+# for now exclude jupyter notebooks
+.ipynb
 
 # exclude data from source control by default
 /data/
@@ -91,3 +93,7 @@ target/
 # Ignore these folders for now
 /Thesis/
 /Project Plan/
+/wandb
+/notebooks
+/hyper_params.txt
+/compare_results
