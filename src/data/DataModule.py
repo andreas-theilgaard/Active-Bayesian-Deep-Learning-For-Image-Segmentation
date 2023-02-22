@@ -51,7 +51,7 @@ class SegmentationData(Dataset):
         image = image / 255.0
         mask = np.array(mask, dtype=np.int64)
 
-        if self.to_binary and not self.dataset_type != "membrane":  # membrane already binary
+        if self.to_binary and self.dataset_type != "membrane":  # membrane already binary
             mask[mask > 0] = 1
         # if self.dataset_type == 'membrane':
         #    mask = mask#mask/255

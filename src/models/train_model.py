@@ -6,11 +6,17 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torchmetrics import JaccardIndex, Dice
-from torchmetrics.classification import MulticlassAccuracy, BinaryAccuracy, BinaryJaccardIndex
+from torchmetrics.classification import (
+    MulticlassAccuracy,
+    BinaryAccuracy,
+    BinaryJaccardIndex,
+    BinaryF1Score,
+)
 import argparse
 import os
-from sklearn.model_selection import train_test_split
-import numpy as np
+
+# from sklearn.model_selection import train_test_split
+# import numpy as np
 
 # Import modules
 from src.models.model import UNET, init_weights
@@ -31,7 +37,7 @@ def validate(val_data, model, loss, device, save_):
 
     # Define metrics to use
     dice = (
-        Dice(average="micro", validate_args=True).to(device)
+        BinaryF1Score().to(device)  # Dice(average="macro", validate_args=True).to(device) #micro
         if model.out_ch == 1
         else Dice(average="micro", ignore_index=0, validate_args=True).to(device)
     )
@@ -61,7 +67,8 @@ def validate(val_data, model, loss, device, save_):
             masks = masks.to(device)
 
             preds = model(images)  # .to(device)
-            dice_vec.append(dice(preds, masks).item())  # Dice Score
+            # dice_vec.append(dice(preds, masks).item())  # Dice Score
+            dice_vec.append(dice(preds.squeeze(1), masks).item())  # Dice Score
 
             if batch_number == 0:
                 fig = plot_prediction_batch(images, masks, preds, save_=save_)
@@ -112,12 +119,15 @@ def train(
     iter=10,
     experiment_name=None,
     job_type=None,
+    enable_dropout=False,
+    dropout_prob=0.5,
+    enable_pool_dropout=False,
+    pool_dropout_prob=0.5,
+    bilinear_method=True,
+    model_method=None,
 ):
-
     parser = argparse.ArgumentParser(description="Training arguments")
-    parser.add_argument(
-        "--model_method", default="batchnorm"
-    )  # [batchnorm,dropout,pool_dropout,both_dropout]
+    parser.add_argument("--model_method", default=model_method)
     parser.add_argument("--iter", default=iter)
     parser.add_argument("--lr", default=lr)  #
     parser.add_argument("--device", default=device)  #
@@ -130,7 +140,9 @@ def train(
     parser.add_argument("--binary", default=binary)  #
     args = parser.parse_args()
     print(args)
-    print(experiment_name, job_type)
+    print(f"bilinear_method:", bilinear_method)
+
+    # init weights & biases
     if experiment_name and job_type:
         run_tracker = wandb.init(
             entity="andr_dl_projects",
@@ -164,9 +176,16 @@ def train(
     )
 
     # Get model and intilize weights
-    model = UNET(in_ch=3, out_ch=n_classes, bilinear_method=True, momentum=args.momentum).to(
-        args.device
-    )
+    model = UNET(
+        in_ch=3,
+        out_ch=n_classes,
+        bilinear_method=bilinear_method,
+        momentum=args.momentum,
+        enable_dropout=enable_dropout,
+        dropout_prob=dropout_prob,
+        enable_pool_dropout=enable_pool_dropout,
+        pool_dropout_prob=pool_dropout_prob,
+    ).to(args.device)
     model = init_weights(model)
 
     # Intilize criterion and optimizer
@@ -175,12 +194,12 @@ def train(
     )
     optimizer = optim.Adam(model.parameters(), lr=0.001)  # eps=1e-07,weight_decay=1e-7
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, "max", patience=5, factor=0.1, threshold=0.001
+        optimizer, "max", patience=5, factor=0.1, threshold=0.001  # maybe reduce threshold
     )  # goal: maximize Dice score € change to track val loss
 
     # Define metricsthat will be used
     dice = (
-        Dice(average="micro").to(DEVICE)
+        BinaryF1Score().to(args.device)  # Dice(average="macro").to(DEVICE) # micro
         if model.out_ch == 1
         else Dice(average="micro", ignore_index=0).to(DEVICE)
     )
@@ -228,7 +247,9 @@ def train(
             predictions = model(images)
 
             # Save dice score
-            dice_vec.append(dice(predictions, masks).item())
+            dice_vec.append(
+                dice(predictions.squeeze(1), masks).item()
+            )  # squeeze(1) added for binarydice
 
             # For the first batch in each epoch, some image predictions are logged to wandb
             if batch_number == 0:
