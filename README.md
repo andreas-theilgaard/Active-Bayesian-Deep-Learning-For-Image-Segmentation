@@ -6,7 +6,7 @@ Active Bayesian Deep Learning For Image Segmentation
 [![build status](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/windows.yml/badge.svg)](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/windows.yml)
 [![build status](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/Coverage_Report.yml/badge.svg)](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/Coverage_Report.yml)
 
-A short description of the project.
+A short description of the project (to be updated).
 
 ## Project Setup
 #### Clone repository
@@ -17,7 +17,7 @@ clone https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Im
 #### Create virtual environment (require Python 3.10)
 Create virtual environment containing the packages used for this project by the following command:
 ```
-conda env create -f environment.yml 
+conda env create -f environment.yml
 ```
 
 Project Organization
