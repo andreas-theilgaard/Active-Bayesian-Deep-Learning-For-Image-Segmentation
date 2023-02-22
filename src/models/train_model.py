@@ -125,6 +125,7 @@ def train(
     pool_dropout_prob=0.5,
     bilinear_method=True,
     model_method=None,
+    seed=None,
 ):
     parser = argparse.ArgumentParser(description="Training arguments")
     parser.add_argument("--model_method", default=model_method)
@@ -173,6 +174,7 @@ def train(
         batch_size=args.batch_size,
         to_binary=args.binary,
         num_workers=0,
+        seed=seed,
     )
 
     # Get model and intilize weights

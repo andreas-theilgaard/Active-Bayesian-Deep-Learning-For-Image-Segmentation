@@ -17,12 +17,12 @@ class Conv_Block(nn.Module):
 
         self.layers = [nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=True)]
         if enable_dropout:
-            self.layers(nn.Dropout(p=dropout_prob))
+            self.layers.append(nn.Dropout(p=dropout_prob))
         self.layers.append(nn.BatchNorm2d(out_ch, momentum=momentum))
         self.layers.append(nn.ReLU(inplace=True))
         self.layers.append(nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1, bias=True))
         if enable_dropout:
-            self.layers(nn.Dropout(p=dropout_prob))
+            self.layers.append(nn.Dropout(p=dropout_prob))
         self.layers.append(nn.BatchNorm2d(out_ch, momentum=momentum))
         self.layers.append(nn.ReLU(inplace=True))
 

@@ -3,9 +3,12 @@ import argparse
 from src.models.train_model import train
 from src.experiments.experiment_utils import arrayify_results
 from src.config import find_best_device
+import numpy as np
 
 # hyper_params in dictinary based on dataset type
-dataset_size = [0.99]  # [0.01,0.32,0.63,0.99] # TO DO: do some more runs with other values
+dataset_size = [0.01, 0.32, 0.63, 0.99]  # TO DO: do some more runs with other values
+
+seeds = [182, 322, 291, 292, 122, 53, 261, 427, 174, 128]
 
 hyper_params = {
     "membrane": {
@@ -34,13 +37,13 @@ def compare(dataset_size):
     # Clean up here remove redundancy
     parser = argparse.ArgumentParser(description="Training arguments")
     parser.add_argument("--save_path", default="new_membrane_dropout_test")
-    parser.add_argument("--dataset", default="warwick")
-    parser.add_argument("--number_iters", default=10)
+    parser.add_argument("--dataset", default="membrane")
+    parser.add_argument("--number_iters", default=2)
     parser.add_argument("--device", default="cpu")  # find_best_device
     parser.add_argument("--bilinear_method", default=True)  # bilinear_method
 
     parser.add_argument("--batch_size", default=4)
-    parser.add_argument("--epochs", default=25)
+    parser.add_argument("--epochs", default=5)
     parser.add_argument("--validation_size", default=0.33)
     parser.add_argument("--binary", default=True)
     parser.add_argument("--dropout_prob", default=0.5)
@@ -59,7 +62,7 @@ def compare(dataset_size):
                 momentum = hyper_params[args.dataset][train_size]["momentum"]
                 experiment_name = f"{args.dataset}_{method}_{train_size}"
                 job_type = f"run {iteration+1}"
-
+                seed = seeds[iteration]
                 stored_metrics = train(
                     dataset=args.dataset,
                     train_size=train_size,
@@ -79,6 +82,7 @@ def compare(dataset_size):
                     pool_dropout_prob=args.dropout_pool_prob,
                     bilinear_method=args.bilinear_method,
                     model_method=method,
+                    seed=seed,
                 )
                 res = arrayify_results(stored_metrics, args.save_path)
 

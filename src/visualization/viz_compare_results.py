@@ -2,11 +2,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-res = pd.read_json("compare_results/test.json")
+
+res = pd.read_json("compare_results/new_membrane_dropout_test.json")
 res.columns
 var_ = "val_pixel_accuracy"
 train_size = 0.01
 method = "batchnorm"
+res.columns
+res["method"].unique()
 
 csfont = {"fontname": "Times New Roman"}
 
