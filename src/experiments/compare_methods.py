@@ -135,7 +135,7 @@ import subprocess
 
 
 def upload_result(save_path):
-    bash_cmd = f"gsutil cp results/{save_path}.json gs://compare_methods_results"
+    bash_cmd = f"/root/google-cloud-sdk/bin/gsutil cp results/{save_path}.json gs://compare_methods_results"
     process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
 
