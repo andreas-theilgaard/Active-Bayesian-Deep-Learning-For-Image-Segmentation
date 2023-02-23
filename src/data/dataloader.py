@@ -35,5 +35,4 @@ def train_split(train_size, dataset, batch_size, to_binary, num_workers=0, seed=
         pin_memory=True,
         generator=torch.Generator().manual_seed(random_state),
     )
-    print(train_idx)
     return (train_loader, val_loader)

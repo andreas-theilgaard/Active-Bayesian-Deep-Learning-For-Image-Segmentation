@@ -1,14 +1,46 @@
-import torch
 import argparse
+
+# from src.data.get_data import get_data
+import os
+import wandb
+import subprocess
+from src.config import find_best_device
+
+# dataset = os.environ['dataset']
+# print(f"Using dataset: {dataset}")
+# Download data
+# get_data()
+##############
+save_path = os.environ["save_path"]
+dataset = os.environ["dataset"]
+
+bash_cmd = f"wandb server start"
+process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+output, error = process.communicate()
+
+bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
+process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+output, error = process.communicate()
+
+
+def init_env():
+    if not os.path.isdir("result/"):
+        os.mkdir("compare_results")
+    bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
+    process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+    if not error:
+        print("Logged succesfully in to wandb")
+
+
 from src.models.train_model import train
 from src.experiments.experiment_utils import arrayify_results
-from src.config import find_best_device
-import numpy as np
+
 
 # hyper_params in dictinary based on dataset type
-dataset_size = [0.01, 0.32, 0.63, 0.99]  # TO DO: do some more runs with other values
-
-seeds = [182, 322, 291, 292, 122, 53, 261, 427, 174, 128]
+dataset_size = [0.01]  # , 0.32, 0.63, 0.99]  # TO DO: do some more runs with other values
+# 5 and 6 maybe bad choice??
+seeds = [182]  # , 322, 291, 292,261]# 122, 53, 261, 427, 174, 128]
 
 hyper_params = {
     "membrane": {
@@ -18,6 +50,18 @@ hyper_params = {
         0.99: {"lr": 0.001, "momentum": 0.1},
     },
     "warwick": {
+        0.01: {"lr": 0.001, "momentum": 0.9},
+        0.32: {"lr": 0.0001, "momentum": 0.6},
+        0.63: {"lr": 0.0001, "momentum": 0.1},
+        0.99: {"lr": 0.0001, "momentum": 0.1},
+    },
+    "PhC-C2DH-U373": {
+        0.01: {"lr": 0.001, "momentum": 0.9},
+        0.32: {"lr": 0.0001, "momentum": 0.6},
+        0.63: {"lr": 0.0001, "momentum": 0.1},
+        0.99: {"lr": 0.0001, "momentum": 0.1},
+    },
+    "DIC_C2DH_Hela": {
         0.01: {"lr": 0.001, "momentum": 0.9},
         0.32: {"lr": 0.0001, "momentum": 0.6},
         0.63: {"lr": 0.0001, "momentum": 0.1},
@@ -36,14 +80,14 @@ methods = {
 def compare(dataset_size):
     # Clean up here remove redundancy
     parser = argparse.ArgumentParser(description="Training arguments")
-    parser.add_argument("--save_path", default="new_membrane_dropout_test")
-    parser.add_argument("--dataset", default="membrane")
-    parser.add_argument("--number_iters", default=2)
-    parser.add_argument("--device", default="cpu")  # find_best_device
+    parser.add_argument("--save_path", default=save_path)
+    parser.add_argument("--dataset", default=dataset)
+    parser.add_argument("--number_iters", default=1)
+    parser.add_argument("--device", default=find_best_device())  # find_best_device
     parser.add_argument("--bilinear_method", default=True)  # bilinear_method
 
     parser.add_argument("--batch_size", default=4)
-    parser.add_argument("--epochs", default=5)
+    parser.add_argument("--epochs", default=1)
     parser.add_argument("--validation_size", default=0.33)
     parser.add_argument("--binary", default=True)
     parser.add_argument("--dropout_prob", default=0.5)
@@ -87,5 +131,16 @@ def compare(dataset_size):
                 res = arrayify_results(stored_metrics, args.save_path)
 
 
+import subprocess
+
+
+def upload_result(save_path):
+    bash_cmd = f"gsutil cp results/{save_path}.json gs://compare_methods_results"
+    process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+
+
 if __name__ == "__main__":
+    init_env()
     compare(dataset_size=dataset_size)
+    upload_result(save_path=save_path)

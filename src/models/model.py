@@ -3,6 +3,7 @@ import torch.nn as nn
 import torchvision
 import torchvision.transforms.functional as TF
 import torch.nn.functional as F
+import matplotlib
 
 # Implement dropout
 #   enable_dropout : bool,

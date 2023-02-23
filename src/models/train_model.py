@@ -152,6 +152,7 @@ def train(
             resume="allow",
             group=experiment_name,
             job_type=job_type,
+            anonymous="allow",
         )
     else:
         run_tracker = wandb.init(
