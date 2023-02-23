@@ -24,7 +24,7 @@ output, error = process.communicate()
 
 
 def init_env():
-    if not os.path.isdir("result/"):
+    if not os.path.isdir("compare_results/"):
         os.mkdir("compare_results")
     bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
     process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
