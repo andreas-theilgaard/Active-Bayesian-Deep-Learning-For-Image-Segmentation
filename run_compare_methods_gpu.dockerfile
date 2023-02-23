@@ -19,8 +19,8 @@ RUN rm key.json
 
 # copy setup env
 COPY src /src/
-COPY requirements.txt requirements.txt
-COPY setup.py setup.py
+COPY requirements.txt /requirements.txt
+COPY setup.py /setup.py
 
 
 WORKDIR /
