@@ -14,9 +14,9 @@ RUN bash install.sh --disable-prompts
 SHELL ["/bin/bash", "-c"]
 COPY key.json key.json
 RUN /root/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=key.json
-RUN /root/google-cloud-sdk/bin/gsutil cp -r gs://data_bachelor_buck/data .
+RUN /root/google-cloud-sdk/bin/gsutil cp -r gs://data_bachelor_buck/ .
 RUN mv data_bachelor_buck/data /data
-RUN rm key.json
+RUN rm -r data_bachelor_buck
 
 # copy setup env
 COPY src /src/
