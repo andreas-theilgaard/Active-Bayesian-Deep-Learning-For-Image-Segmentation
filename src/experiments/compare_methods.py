@@ -5,7 +5,9 @@ import os
 import wandb
 import subprocess
 from src.config import find_best_device
+import torch
 
+print(f"Cuda avavviable ?: {torch.cuda.is_available()}")
 # dataset = os.environ['dataset']
 # print(f"Using dataset: {dataset}")
 # Download data
@@ -135,7 +137,7 @@ import subprocess
 
 
 def upload_result(save_path):
-    bash_cmd = f"/root/google-cloud-sdk/bin/gsutil cp results/{save_path}.json gs://compare_methods_results"
+    bash_cmd = f"/root/google-cloud-sdk/bin/gsutil cp compare_results/{save_path}.json gs://compare_methods_results"
     process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
 
