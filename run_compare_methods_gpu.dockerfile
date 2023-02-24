@@ -29,7 +29,7 @@ COPY setup.py /setup.py
 WORKDIR /
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt --no-cache-dir
-RUN pip3 install torch==11.7 torchvision==11.7--extra-index-url https://download.pytorch.org/whl/cu116 --no-cache-dir
+RUN pip3 install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117 --no-cache-dir
 
 
 ENTRYPOINT ["python", "-u", "src/experiments/compare_methods.py"]
