@@ -77,7 +77,7 @@ methods = {
     "pool__and_conv_layer_dropout": {"enable_dropout": True, "enable_pool_dropout": True},
 }
 
-
+#
 def compare(dataset_size):
     # Clean up here remove redundancy
     parser = argparse.ArgumentParser(description="Training arguments")
