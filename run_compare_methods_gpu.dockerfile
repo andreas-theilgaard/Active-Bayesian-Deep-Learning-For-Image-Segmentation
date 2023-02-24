@@ -1,5 +1,7 @@
 # Base image
 FROM nvcr.io/nvidia/pytorch:22.07-py3
+FROM python:3.10-slim
+
 
 # install python
 RUN apt update && \
