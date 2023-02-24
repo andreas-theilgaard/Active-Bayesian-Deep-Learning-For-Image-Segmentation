@@ -8,6 +8,7 @@ from src.config import find_best_device
 
 print(os.listdir())
 print(os.listdir("data"))
+
 # dataset = os.environ['dataset']
 # print(f"Using dataset: {dataset}")
 # Download data
