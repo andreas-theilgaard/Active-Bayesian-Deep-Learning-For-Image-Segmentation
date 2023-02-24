@@ -7,7 +7,6 @@ import subprocess
 from src.config import find_best_device
 import torch
 
-print(f"Cuda avavviable ?: {torch.cuda.is_available()}")
 # dataset = os.environ['dataset']
 # print(f"Using dataset: {dataset}")
 # Download data
@@ -40,9 +39,9 @@ from src.experiments.experiment_utils import arrayify_results
 
 
 # hyper_params in dictinary based on dataset type
-dataset_size = [0.01]  # , 0.32, 0.63, 0.99]  # TO DO: do some more runs with other values
+dataset_size = [0.01, 0.32]  # , 0.32, 0.63, 0.99]  # TO DO: do some more runs with other values
 # 5 and 6 maybe bad choice??
-seeds = [182]  # , 322, 291, 292,261]# 122, 53, 261, 427, 174, 128]
+seeds = [182, 322, 291, 292, 261]  # 122, 53, 261, 427, 174, 128]
 
 hyper_params = {
     "membrane": {
@@ -82,14 +81,14 @@ methods = {
 def compare(dataset_size):
     # Clean up here remove redundancy
     parser = argparse.ArgumentParser(description="Training arguments")
-    parser.add_argument("--save_path", default=save_path)
-    parser.add_argument("--dataset", default=dataset)
-    parser.add_argument("--number_iters", default=1)
+    parser.add_argument("--save_path", default="test")
+    parser.add_argument("--dataset", default="membrane")
+    parser.add_argument("--number_iters", default=5)
     parser.add_argument("--device", default=find_best_device())  # find_best_device
     parser.add_argument("--bilinear_method", default=True)  # bilinear_method
 
     parser.add_argument("--batch_size", default=4)
-    parser.add_argument("--epochs", default=1)
+    parser.add_argument("--epochs", default=100)
     parser.add_argument("--validation_size", default=0.33)
     parser.add_argument("--binary", default=True)
     parser.add_argument("--dropout_prob", default=0.5)
