@@ -1,5 +1,5 @@
 # Base image
-FROM nvcr.io/nvidia/pytorch:22.07-py3
+FROM nvcr.io/nvidia/pytorch:23.01-py3
 
 # install python
 RUN apt update && \
@@ -14,7 +14,7 @@ RUN bash install.sh --disable-prompts
 SHELL ["/bin/bash", "-c"]
 COPY key.json key.json
 RUN /root/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=key.json
-RUN /root/google-cloud-sdk/bin/gsutil cp -r gs://data_bachelor_buck/ .
+RUN /root/google-cloud-sdk/bin/gsutil -m cp -r gs://data_bachelor_buck/ .
 RUN mv data_bachelor_buck/data /data
 RUN rm -r data_bachelor_buck
 
