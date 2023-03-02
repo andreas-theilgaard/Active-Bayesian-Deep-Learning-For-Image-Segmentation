@@ -28,9 +28,6 @@ import pandas as pd
 # Initialize wandb
 import wandb
 
-# init wandb
-
-
 @torch.inference_mode()
 def validate(val_data, model, loss, device, save_):
     model.eval()  # Put model in eval mode
@@ -39,7 +36,7 @@ def validate(val_data, model, loss, device, save_):
     dice = (
         BinaryF1Score().to(device)  # Dice(average="macro", validate_args=True).to(device) #micro
         if model.out_ch == 1
-        else Dice(average="micro", ignore_index=0, validate_args=True).to(device)
+        else Dice(average="micro", validate_args=True).to(device)
     )
     pixel_acc = (
         MulticlassAccuracy(num_classes=model.out_ch, validate_args=True).to(device)
@@ -203,7 +200,7 @@ def train(
     dice = (
         BinaryF1Score().to(args.device)  # Dice(average="macro").to(DEVICE) # micro
         if model.out_ch == 1
-        else Dice(average="micro", ignore_index=0).to(DEVICE)
+        else Dice(average="micro").to(DEVICE)
     )
     pixel_acc = (
         MulticlassAccuracy(num_classes=model.out_ch, validate_args=True).to(args.device)
@@ -330,5 +327,5 @@ def train(
     return data_to_store
 
 
-# if __name__=="__main__":
-#     train()
+if __name__=="__main__":
+    train()
