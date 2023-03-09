@@ -44,6 +44,12 @@ jobs:
         pip install torch==${{ matrix.pytorch-version }}
         pip install -r requirements.txt
         pip install -r requirements_tests.txt
+
+    - name: Get small dvc sample data
+      run: dvc pull data/color_mapping/test_color.json
+      env:
+        GDRIVE_CREDENTIALS_DATA: $
+        
     - name: Test Checks
       run: |
         coverage run -m pytest -v
