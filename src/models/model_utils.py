@@ -1,3 +1,61 @@
+import torch
+
+
+class SegmentationMetrics:
+    def __init__(self, multiclass=False):
+        self.multiclass = multiclass
+
+    def Dice_Coef(self, yhat, y_true):
+        assert torch.is_tensor(yhat) == True
+        assert torch.is_tensor(y_true) == True
+
+        if yhat.min().item() < 0.0:
+            yhat = (torch.sigmoid(yhat) >= 0.50).float()
+
+        intersection = (yhat.flatten() * y_true.flatten()).sum()
+        union = yhat.flatten().sum() + y_true.flatten().sum()
+        numeric_stability = 1e-8
+        return (2 * intersection) / (union + numeric_stability)
+
+    def Dice_Coef_Confusion(self, yhat, y_true):
+        assert torch.is_tensor(yhat) == True
+        assert torch.is_tensor(y_true) == True
+
+        if yhat.min().item() < 0.0:
+            yhat = (torch.sigmoid(yhat) >= 0.50).float()
+
+        TP = (yhat.flatten() * y_true.flatten()).sum()
+        FN = y_true[yhat == 0].sum()
+        FP = yhat[y_true == 0].sum()
+        TN = yhat.numel() - TP - FN - FP
+        numeric_stability = 1e-8
+        return (2 * TP) / (2 * TP + FN + FP + numeric_stability)
+
+    def IOU_(self, yhat, y_true):
+        assert torch.is_tensor(yhat) == True
+        assert torch.is_tensor(y_true) == True
+
+        if yhat.min().item() < 0.0:
+            yhat = (torch.sigmoid(yhat) >= 0.50).float()
+
+        TP = (yhat.flatten() * y_true.flatten()).sum()
+        FN = y_true[yhat == 0].sum()
+        FP = yhat[y_true == 0].sum()
+        TN = yhat.numel() - TP - FN - FP
+        # numeric_stability = 1e-8
+        IOU = TP / (TP + FN + FP)
+        return IOU
+
+
+# yhat = torch.tensor([0,1,0,1])
+# y_true = torch.tensor([0,0,1,1])
+
+# metrics = SegmentationMetrics()
+
+# metrics.Dice_Coef(yhat,y_true)
+# metrics.Dice_Coef_Confusion(yhat,y_true)
+
+
 # import numpy as np
 # import torch
 # from sklearn.metrics import f1_score
@@ -28,26 +86,6 @@
 # union = yhat.flatten().sum()+y.flatten().sum()
 
 # (2*intersection)/(union)
-
-
-# class SegmentationMetrics:
-#     def __init__(self,yhat,y_true,multiclass=False):
-#         self.yhat=yhat
-#         self.y=y
-#         self.multiclass=multiclass
-
-#     def Dice_Coef(self,yhat,y):
-#         intersection=(yhat.flatten()*y.flatten()).sum()
-#         union = yhat.flatten().sum()+y.flatten().sum()
-#         numeric_stability = 1e-8
-#         return (2*intersection)/(union+numeric_stability)
-#     def Dice_Coef_Confusion(self,yhat,y):
-#         TP = (yhat.flatten()*y.flatten()).sum()
-#         FN = y[yhat==0].sum()
-#         FP = yhat[y==0].sum()
-#         TN = yhat.numel()-TP-FN-FP
-#         numeric_stability = 1e-8
-#         return (2*TP)/(2*TP+FN+FP+numeric_stability)
 
 
 # f1_ = BinaryF1Score()

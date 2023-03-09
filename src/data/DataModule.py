@@ -33,6 +33,10 @@ class SegmentationData(Dataset):
         # print(f"Images in total: {len(self.images)}")
         # self.images = glob.glob(os.path.join(f"{self.data_path}/image",'*'))
 
+        self.transform = transforms.Compose(
+            [transforms.Normalize((84.1169, 84.1169, 84.1169), (8.7073, 8.7073, 8.7073))]
+        )
+
     def __len__(self):
         return len(self.images)
 
@@ -41,25 +45,35 @@ class SegmentationData(Dataset):
         mask_path = os.path.join(
             f"{self.data_path}/label", self.images[idx].replace(".jpg", "_mask.gif")
         )
-        image = Image.open(img_path).convert("RGB")
+        image = Image.open(img_path).convert("L")  # .convert("RGB") # convert("L")
         mask = Image.open(mask_path)
 
-        image = image.resize((self.img_height, self.img_width), resample=Image.BICUBIC)
-        mask = mask.resize((self.img_height, self.img_width), resample=Image.NEAREST)
+        image = image.resize((self.img_height, self.img_width), resample=Image.BICUBIC)  # BILINEAR
+        mask = mask.resize(
+            (self.img_height, self.img_width), resample=Image.Resampling.NEAREST
+        )  # BILINEAR,NEAREST
 
         image = np.array(image)
-        image = image / 255.0
         mask = np.array(mask, dtype=np.int64)
 
-        if self.to_binary:  # and self.dataset_type != "membrane":  # membrane already binary
+        if (
+            self.to_binary and self.dataset_type != "membrane"
+        ):  # and self.dataset_type != "membrane":  # membrane already binary
             mask[mask > 0] = 1
-        # if self.dataset_type == 'membrane':
-        #    mask = mask#mask/255
+        if self.to_binary and self.dataset_type == "membrane":
+            mask = mask / 255
+            mask = mask.astype(np.int64)
 
         image = torch.tensor(image)
+        # if image.shape[0] in [self.img_height, self.img_height]:
+        #    image = image.permute(2,0,1)
+        image = image / 255
         mask = torch.tensor(mask)
+        # image = self.transform(image.float())
 
-        if image.shape[0] in [self.img_height, self.img_height]:
-            image = image.permute(2, 0, 1)
+        # if image.shape[0] in [self.img_height, self.img_height]:
+        #    image = image.permute(2, 0, 1)
+        # if image.shape[0] in [self.img_height, self.img_height]:
+        #   image = image.permute(2, 0, 1)
 
         return (image, mask)
