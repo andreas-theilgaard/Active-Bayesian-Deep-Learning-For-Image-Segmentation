@@ -97,3 +97,4 @@ target/
 /notebooks
 /hyper_params.txt
 /compare_results
+/data
