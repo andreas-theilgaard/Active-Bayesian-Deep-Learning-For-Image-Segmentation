@@ -48,8 +48,8 @@ jobs:
     - name: Get small dvc sample data
       run: dvc pull data/color_mapping/test_color.json
       env:
-        GDRIVE_CREDENTIALS_DATA: $
-        
+        GDRIVE_CREDENTIALS_DATA: ${{ github.GDRIVE_CREDENTIALS_DATA }}
+
     - name: Test Checks
       run: |
         coverage run -m pytest -v
