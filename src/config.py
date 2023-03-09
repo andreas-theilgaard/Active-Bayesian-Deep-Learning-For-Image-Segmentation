@@ -5,7 +5,8 @@ class Config:
 
 
 import torch
-
+import dvc
+dvc.__version__
 
 def find_best_device():
     if torch.cuda.is_available():
