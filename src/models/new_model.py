@@ -7,62 +7,63 @@ import torch.nn.functional as F
 
 
 class UNET(nn.Module):
-    def __init__(self, in_ch, out_ch, momentum=0.1):
+    def __init__(self, in_ch, out_ch, momentum=0.1, bias=False):
         super().__init__()
 
         self.in_ch = in_ch
         self.out_ch = out_ch
+        self.bias = bias
 
         self.d1 = nn.Sequential(
-            nn.Conv2d(in_ch, 64, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(in_ch, 64, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(64, momentum=momentum),
             # nn.InstanceNorm2d(64),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(64, momentum=momentum),
             # nn.InstanceNorm2d(64),
             nn.ReLU(inplace=True),
         )
 
         self.d2 = nn.Sequential(
-            nn.Conv2d(64, 128, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(128, momentum=momentum),
             # nn.InstanceNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(128, momentum=momentum),
             # nn.InstanceNorm2d(128),
             nn.ReLU(inplace=True),
         )
 
         self.d3 = nn.Sequential(
-            nn.Conv2d(128, 256, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(128, 256, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(256, momentum=momentum),
             # nn.InstanceNorm2d(256),
             nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(256, momentum=momentum),
             # nn.InstanceNorm2d(256),
             nn.ReLU(inplace=True),
         )
 
         self.d4 = nn.Sequential(
-            nn.Conv2d(256, 512, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(256, 512, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(512, momentum=momentum),
             # nn.InstanceNorm2d(512),
             nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(512, momentum=momentum),
             # nn.InstanceNorm2d(512),
             nn.ReLU(inplace=True),
         )
 
         self.bottleneck = nn.Sequential(
-            nn.Conv2d(512, 1024, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(512, 1024, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(1024, momentum=momentum),
             # nn.InstanceNorm2d(1024),
             nn.ReLU(inplace=True),
-            nn.Conv2d(1024, 1024, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(1024, 1024, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(1024, momentum=momentum),
             # nn.InstanceNorm2d(1024),
             nn.ReLU(inplace=True),
@@ -72,11 +73,11 @@ class UNET(nn.Module):
 
         self.u1 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
         self.u1_conv = nn.Sequential(
-            nn.Conv2d(1024, 512, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(1024, 512, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(512, momentum=momentum),
             # nn.InstanceNorm2d(512),
             nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(512, momentum=momentum),
             # nn.InstanceNorm2d(512),
             nn.ReLU(inplace=True),
@@ -84,11 +85,11 @@ class UNET(nn.Module):
 
         self.u2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
         self.u2_conv = nn.Sequential(
-            nn.Conv2d(512, 256, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(512, 256, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(256, momentum=momentum),
             # nn.InstanceNorm2d(256),
             nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(256, momentum=momentum),
             # nn.InstanceNorm2d(256),
             nn.ReLU(inplace=True),
@@ -96,11 +97,11 @@ class UNET(nn.Module):
 
         self.u3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
         self.u3_conv = nn.Sequential(
-            nn.Conv2d(256, 128, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(256, 128, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(128, momentum=momentum),
             # nn.InstanceNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(128, momentum=momentum),
             # nn.InstanceNorm2d(128),
             nn.ReLU(inplace=True),
@@ -108,17 +109,17 @@ class UNET(nn.Module):
 
         self.u4 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
         self.u4_conv = nn.Sequential(
-            nn.Conv2d(128, 64, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(128, 64, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(64, momentum=momentum),
             # nn.InstanceNorm2d(64),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1, bias=self.bias),
             nn.BatchNorm2d(64, momentum=momentum),
             # nn.InstanceNorm2d(64),
             nn.ReLU(inplace=True),
         )
 
-        self.out = nn.Conv2d(64, out_ch, kernel_size=1, bias=False)
+        self.out = nn.Conv2d(64, out_ch, kernel_size=1, bias=self.bias)
 
     def forward(self, x):
         # [n_channels,img_width,img_height]
@@ -158,11 +159,34 @@ class UNET(nn.Module):
         return output
 
 
+class init_store:
+    def __init__(self, init_):
+        self.init_ = init_
+
+
+global store_init
+store_init = init_store(init_=0)
+store_init.init_
+
+
 def init_weights(model):
     if type(model) in [nn.Conv2d, nn.ConvTranspose2d]:
-        nn.init.kaiming_normal_(model.weight, mode="fan_in", nonlinearity="relu")
-        # nn.init.xavier_uniform_(model.weight)
-        # nn.init.zeros_(model.bias)
+        # if init_==0:
+        #    nn.init.kaiming_normal_(model.weight, mode="fan_in", nonlinearity="relu")
+        #    nn.init.zeros_(model.bias)
+        # if init_==1:
+        if store_init.init_ == 0:
+            nn.init.xavier_uniform_(model.weight)
+        elif store_init.init_ == 1:
+            nn.init.kaiming_normal_(model.weight, mode="fan_in", nonlinearity="relu")
+        elif store_init.init_ == 2:
+            nn.init.kaiming_uniform_(model.weight)
+        elif store_init.init_ == 3:
+            nn.init.xavier_normal_(model.weight)
+        try:
+            nn.init.normal_(model.bias, std=0.001)
+        except:
+            pass
 
 
 # if __name__ == "__main__":

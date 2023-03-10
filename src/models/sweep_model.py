@@ -16,6 +16,7 @@ import argparse
 import os
 from src.models.model_utils import SegmentationMetrics
 import hydra
+from src.data.initialize import get_data
 
 # from sklearn.model_selection import train_test_split
 # import numpy as np
@@ -23,7 +24,7 @@ import hydra
 # Import modules
 # from src.models.unet_model import UNET
 # from src.models.model import UNET, init_weights
-from src.models.new_model import UNET, init_weights
+from src.models.new_model import UNET, init_weights, store_init
 from src.visualization.plot import plot_prediction_batch
 from src.config import Config
 from src.data.dataloader import train_split
@@ -43,9 +44,8 @@ def torch_their_dice(pred, mask):
     return torch.mean(dice)
 
 
-@hydra.main(config_path="../configs", config_name="base.yaml", version_base="1.1")
+# @hydra.main(config_path="../configs",config_name="base.yaml",version_base="1.1")
 def train(
-    config,
     dataset="PhC-C2DH-U373",
     train_size=0.99,
     device="cpu",
@@ -62,11 +62,24 @@ def train(
     model_method=None,
     seed=261,
 ):
-    print(config.hyperparameters.batch_size)
-    batch_size = config.hyperparameters.batch_size
-    lr = config.hyperparameters.learning_rate
-    epochs = config.hyperparameters.epochs
-    momentum = config.hyperparameters.momentum
+
+    run = wandb.init()
+    config = wandb.config
+    # print(config.parameters.batch_size)
+    batch_size = 4
+    lr = 0.001
+    epochs = 50
+    # momentum=config.parameters.momentum
+    momentum = config["momentum"]
+    beta0 = config["beta0"]
+    interpolate_image = config["interpolate_image"]
+    interpolate_mask = config["interpolate_mask"]
+    bias = config["bias"]
+    init_ = config["init_"]
+    store_init.init_ = init_
+
+    # print(momentum)
+    # beta0 = config.parameters.beta0
 
     parser = argparse.ArgumentParser(description="Training arguments")
     parser.add_argument("--model_method", default=model_method)
@@ -87,25 +100,6 @@ def train(
         17
     )  # seed used for weight initialization, this should be stochastic when using deep ensemble
 
-    # init weights & biases
-    if experiment_name and job_type:
-        run_tracker = wandb.init(
-            entity="andr_dl_projects",
-            reinit=False,
-            project="Active Bayesian Deep Learning For Image Segmentation",
-            resume="allow",
-            group=experiment_name,
-            job_type=job_type,
-            anonymous="allow",
-        )
-    else:
-        run_tracker = wandb.init(
-            entity="andr_dl_projects",
-            reinit=False,
-            project="Active Bayesian Deep Learning For Image Segmentation",
-            resume="allow",
-        )
-
     n_classes = (
         1 if args.binary else Config.n_classes[args.dataset]
     )  # out channels to use for U-Net
@@ -120,6 +114,8 @@ def train(
         to_binary=args.binary,
         num_workers=0,
         seed=seed,
+        interpolate_image=interpolate_image,
+        interpolate_mask=interpolate_mask,
     )
 
     # Get model and intilize weights
@@ -136,7 +132,7 @@ def train(
 
     # model = UNET(in_ch=1,out_ch=1)
 
-    model = UNET(in_ch=1, out_ch=n_classes, momentum=0.9)
+    model = UNET(in_ch=1, out_ch=n_classes, momentum=0.9, bias=bias)
     model.apply(init_weights)
     model.to(args.device)
 
@@ -145,7 +141,7 @@ def train(
         nn.BCEWithLogitsLoss().to(DEVICE) if model.out_ch == 1 else nn.CrossEntropyLoss().to(DEVICE)
     )
     optimizer = optim.Adam(
-        model.parameters(), lr=lr, betas=(0.9, 0.999)
+        model.parameters(), lr=lr, betas=(beta0, 0.999)
     )  # eps=1e-07,weight_decay=1e-7
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, "min", patience=5, factor=0.1, threshold=0.01
@@ -232,14 +228,14 @@ def train(
             optimizer.step()
 
             # For the first batch in each epoch, some image predictions are logged to wandb
-            if batch_number == 0:
-                if (epoch + 1) == args.epochs:
-                    save_ = True
-                fig = plot_prediction_batch(images, masks, predictions, save_=save_)
-                wandb.log({"Training Predictions": fig})
-                if save_:
-                    wandb.log({"Final High Resolution Training Example": wandb.Image("pred.png")})
-                    os.remove("pred.png")
+            # if batch_number == 0:
+            #     if (epoch + 1) == args.epochs:
+            #         save_ = True
+            #     fig = plot_prediction_batch(images, masks, predictions, save_=save_)
+            #     wandb.log({"Training Predictions": fig})
+            #     if save_:
+            #         wandb.log({"Final High Resolution Training Example": wandb.Image("pred.png")})
+            #         os.remove("pred.png")
 
             # update tqdm loop
             train_loop.set_postfix({"loss": loss.item(), "train_dice": dice_vec[-1]})
@@ -314,14 +310,14 @@ def train(
                     torch.max(masks.sum() / masks.numel(), 1 - masks.sum() / masks.numel()).item()
                 )
 
-                if batch_number == 0:
-                    fig = plot_prediction_batch(images, masks, predictions, save_=save_)
-                    wandb.log({"Validation Predictions": fig})
-                    if save_:
-                        wandb.log(
-                            {"Final High Resolution Validation Example": wandb.Image("pred.png")}
-                        )
-                        os.remove("pred.png")
+                # if batch_number == 0:
+                #     fig = plot_prediction_batch(images, masks, predictions, save_=save_)
+                #     wandb.log({"Validation Predictions": fig})
+                #     if save_:
+                #         wandb.log(
+                #             {"Final High Resolution Validation Example": wandb.Image("pred.png")}
+                #         )
+                #         os.remove("pred.png")
 
         val_soft_dice = torch.tensor(val_soft_dice).mean().item()
         val_dice_vec_own = torch.tensor(val_dice_vec_own).mean().item()
@@ -373,9 +369,27 @@ def train(
         "method": args.model_method,
         "Experiment Number": (args.iter + 1),
     }
-    wandb.finish()
     return data_to_store
 
 
 if __name__ == "__main__":
-    train()
+    get_data()
+    sweep_configuration = {
+        "method": "bayes",
+        "name": "sweep",
+        "metric": {"goal": "maximize", "name": "val_dice"},
+        "parameters": {
+            "momentum": {"min": 0.1, "max": 0.99},
+            "beta0": {"min": 0.4, "max": 0.9},
+            "interpolate_image": {"min": 0, "max": 2},
+            "interpolate_mask": {"min": 0, "max": 1},
+            "bias": {"min": 0, "max": 1},
+            "init_": {"min": 0, "max": 3},
+        },
+    }
+    sweep_id = wandb.sweep(
+        sweep=sweep_configuration,
+        entity="andr_dl_projects",
+        project="Active Bayesian Deep Learning For Image Segmentation",
+    )
+    wandb.agent(sweep_id=sweep_id, function=train, count=20)

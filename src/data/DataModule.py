@@ -15,6 +15,8 @@ class SegmentationData(Dataset):
         to_binary=False,
         extra_path=None,
         augment=None,
+        interpolate_image=None,
+        interpolate_mask=None,
     ):
 
         self.img_height = img_height
@@ -37,6 +39,18 @@ class SegmentationData(Dataset):
             [transforms.Normalize((84.1169, 84.1169, 84.1169), (8.7073, 8.7073, 8.7073))]
         )
 
+        if interpolate_image == 0:
+            self.resample_method = Image.BICUBIC
+        elif interpolate_image == 1:
+            self.resample_method = Image.BILINEAR
+        elif interpolate_image == 2:
+            self.resample_method = Image.Resampling.NEAREST
+
+        if interpolate_mask == 0:
+            self.resample_method_mask = Image.BILINEAR
+        elif interpolate_mask == 1:
+            self.resample_method_mask = Image.Resampling.NEAREST
+
     def __len__(self):
         return len(self.images)
 
@@ -48,9 +62,11 @@ class SegmentationData(Dataset):
         image = Image.open(img_path).convert("L")  # .convert("RGB") # convert("L")
         mask = Image.open(mask_path)
 
-        image = image.resize((self.img_height, self.img_width), resample=Image.BICUBIC)  # BILINEAR
+        image = image.resize(
+            (self.img_height, self.img_width), resample=self.resample_method
+        )  # BILINEAR
         mask = mask.resize(
-            (self.img_height, self.img_width), resample=Image.Resampling.NEAREST
+            (self.img_height, self.img_width), resample=self.resample_method_mask
         )  # BILINEAR,NEAREST
 
         image = np.array(image)
