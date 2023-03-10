@@ -3,10 +3,10 @@ FROM nvcr.io/nvidia/pytorch:22.07-py3
 FROM python:3.10-slim
 
 
-# install python
-#RUN apt update && \
-#    apt-get install --no-install-recommends -y build-essential gcc curl && \
-#    apt clean && rm -rf /var/lib/apt/lists/*
+# Install Python
+RUN apt update && \
+   apt-get install --no-install-recommends -y build-essential gcc curl && \
+   apt clean && rm -rf /var/lib/apt/lists/*
 
 # copy setup env
 COPY src /src/
