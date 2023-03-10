@@ -30,9 +30,16 @@ from src.config import Config
 from src.data.dataloader import train_split
 import pandas as pd
 from src.config import find_best_device
+import subprocess
 
 # Initialize wandb
 import wandb
+
+bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
+process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+output, error = process.communicate()
+if not error:
+    print("Logged succesfully into wandb")
 
 
 def torch_their_dice(pred, mask):
