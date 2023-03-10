@@ -6,7 +6,7 @@ Active Bayesian Deep Learning For Image Segmentation
 [![build status](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/windows.yml/badge.svg)](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/windows.yml)
 [![build status](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/Coverage_Report.yml/badge.svg)](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/Coverage_Report.yml)
 
-A short description of the project (to be updated).
+A short description of the project (to be updated)...
 
 ## Project Setup
 #### Clone repository
