@@ -1,0 +1,5 @@
+steps:
+   - name: 'eu.gcr.io/cloud-builders/docker'
+     args: ['build', '-t', 'eu.gcr.io/bachelor-dev-377908/sweep_run_gpu', '.']
+   - name: 'eu.gcr.io/cloud-builders/docker'
+     args: ['push', 'eu.gcr.io/bachelor-dev-377908/sweep_run_gpu']

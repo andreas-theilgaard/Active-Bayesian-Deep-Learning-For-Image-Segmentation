@@ -97,7 +97,8 @@ target/
 /notebooks
 /hyper_params.txt
 /compare_results
-/data
 
 #
-*_MACOSX
+*hydra
+*outputs
+*eksempel.py

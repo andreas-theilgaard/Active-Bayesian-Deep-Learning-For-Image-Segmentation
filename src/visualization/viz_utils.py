@@ -48,13 +48,12 @@ def load_ColorMapper():
     return ColorMapper
 
 
-ColorMapper = load_ColorMapper()
-
 # with open('data/color_mapping/test_color.json','r') as f:
 #     ColorMapper = json.load(f)
 
 
 def viz_mask_helper(mask, dataset_type):
+    ColorMapper = load_ColorMapper()
     mask = mask.permute(1, 2, 0)  # change to [height, width, n_classes]
     seg_arr = mask.argmax(axis=2)
     output_height = seg_arr.shape[0]
