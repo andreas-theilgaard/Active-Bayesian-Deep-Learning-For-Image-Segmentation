@@ -1,4 +1,5 @@
 # Import libraries
+from src.data.initialize import get_data
 import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Subset
@@ -16,7 +17,6 @@ import argparse
 import os
 from src.models.model_utils import SegmentationMetrics
 import hydra
-from src.data.initialize import get_data
 
 # from sklearn.model_selection import train_test_split
 # import numpy as np

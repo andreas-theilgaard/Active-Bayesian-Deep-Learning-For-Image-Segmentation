@@ -4,9 +4,9 @@ FROM python:3.10-slim
 
 
 # install python
-RUN apt update && \
-    apt-get install --no-install-recommends -y build-essential gcc curl && \
-    apt clean && rm -rf /var/lib/apt/lists/*
+#RUN apt update && \
+#    apt-get install --no-install-recommends -y build-essential gcc curl && \
+#    apt clean && rm -rf /var/lib/apt/lists/*
 
 # copy setup env
 COPY src /src/
