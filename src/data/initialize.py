@@ -16,9 +16,23 @@ def get_data():
         stdout, stderr = process.communicate()
         subprocess.call(["./src/data/get_data.sh"])
         print(os.listdir())
-        with zipfile.ZipFile("data.zip", "r") as file:
-            file.extractall("data")
-        os.remove("data.zip")
+        with zipfile.ZipFile("./data.zip", "r") as file:
+            file.extractall("./data")
+        os.remove("./data.zip")
+        process = subprocess.Popen(
+            "mv ./data/data/* data/",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+        )
+        stdout, stderr = process.communicate()
+        process = subprocess.Popen(
+            "rm -rf ./data/data",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+        )
+        stdout, stderr = process.communicate()
     else:
         print("Data already exists")
 
