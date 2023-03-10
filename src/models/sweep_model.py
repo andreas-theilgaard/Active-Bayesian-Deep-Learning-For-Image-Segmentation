@@ -29,6 +29,7 @@ from src.visualization.plot import plot_prediction_batch
 from src.config import Config
 from src.data.dataloader import train_split
 import pandas as pd
+from src.config import find_best_device
 
 # Initialize wandb
 import wandb
@@ -48,7 +49,7 @@ def torch_their_dice(pred, mask):
 def train(
     dataset="PhC-C2DH-U373",
     train_size=0.99,
-    device="cpu",
+    device=find_best_device(),
     validation_size=0.33,
     binary=True,
     iter=10,
