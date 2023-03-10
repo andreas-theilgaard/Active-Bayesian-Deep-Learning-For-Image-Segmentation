@@ -98,3 +98,6 @@ target/
 /hyper_params.txt
 /compare_results
 /data
+
+#
+*_MACOSX
