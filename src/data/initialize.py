@@ -7,14 +7,21 @@ import zipfile
 def get_data():
     if os.path.isdir("data") == False:
         print("Downloading data")
+        # process = subprocess.Popen(
+        #     "chmod +x ./src/data/get_data.sh",
+        #     stdout=subprocess.PIPE,
+        #     stderr=subprocess.PIPE,
+        #     shell=True,
+        # )
+        # stdout, stderr = process.communicate()
         process = subprocess.Popen(
-            "chmod +x ./src/data/get_data.sh",
+            "gdown 1wQ28lNZF1QMEsKgTodz-qKBAnjGb-ElI",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=True,
         )
         stdout, stderr = process.communicate()
-        subprocess.call(["./src/data/get_data.sh"])
+        # subprocess.call(["./src/data/get_data.sh"])
         with zipfile.ZipFile("data.zip", "r") as file:
             file.extractall("data")
         os.remove("data.zip")
