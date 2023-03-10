@@ -1,5 +1,4 @@
 import gdown
-import zipfile
 import os
 import subprocess
 
@@ -12,8 +11,6 @@ def get_data():
         subprocess.call(['./get_data.sh'])
     else:
          print("Data already exists")
-get_data()
-
 
 def upload_file():
     from pydrive.auth import GoogleAuth
