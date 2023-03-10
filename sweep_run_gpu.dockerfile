@@ -6,8 +6,7 @@ FROM python:3.10-slim
 # Install Python
 RUN apt update && \
    apt-get install --no-install-recommends -y build-essential gcc curl && \
-   apt clean && rm -rf /var/lib/apt/lists/* \
-   sudo apt-get install unzip
+   apt clean && rm -rf /var/lib/apt/lists/*
 
 # copy setup env
 COPY src /src/

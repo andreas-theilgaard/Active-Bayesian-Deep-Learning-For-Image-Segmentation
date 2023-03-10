@@ -1,6 +1,7 @@
 import gdown
 import os
 import subprocess
+import zipfile
 
 
 def get_data():
@@ -14,6 +15,9 @@ def get_data():
         )
         stdout, stderr = process.communicate()
         subprocess.call(["./src/data/get_data.sh"])
+        with zipfile.ZipFile("data.zip", "r") as file:
+            file.extractall("data")
+        os.remove("data.zip")
     else:
         print("Data already exists")
 
