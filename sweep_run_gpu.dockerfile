@@ -18,5 +18,4 @@ RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt --no-cache-dir
 RUN pip3 install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117 --no-cache-dir
 
-
 ENTRYPOINT ["python", "-u", "src/models/sweep_model.py"]
