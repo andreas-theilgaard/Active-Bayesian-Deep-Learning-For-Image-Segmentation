@@ -45,6 +45,6 @@ def upload_file():
 
 # gauth.LocalWebserverAuth()
 
-# if __name__ == "__main__":
-#     get_data()
+if __name__ == "__main__":
+    get_data()
 # upload_file()
