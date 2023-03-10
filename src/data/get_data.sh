@@ -2,8 +2,3 @@
 
 # Download file with gdown
 gdown 1wQ28lNZF1QMEsKgTodz-qKBAnjGb-ElI
-
-# Extract contents of zip file
-#unzip data.zip
-# Remove data.zip file
-#rm data.zip
