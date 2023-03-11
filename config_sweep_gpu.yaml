@@ -6,4 +6,4 @@ workerPoolSpecs:
       acceleratorCount: 1
    replicaCount: 1
    containerSpec:
-      imageUri: gcr.io/bachelor-dev-377908/sweep_run_gpu
+      imageUri: gcr.io/bachelor-dev-377908/sweeper

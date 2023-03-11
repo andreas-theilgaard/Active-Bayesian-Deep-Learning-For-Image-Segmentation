@@ -2,7 +2,6 @@
 # from torchmetrics import JaccardIndex,Dice
 # import torch.nn.functional as F
 
-
 # masks =torch.load('masks.pth')
 # pred = torch.load('test_pred.pth')
 
