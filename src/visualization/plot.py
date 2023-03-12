@@ -31,7 +31,7 @@ def mask_to_class_channel(mask, n_classes):
     return mask
 
 
-def plot_prediction_batch(images, masks, predictions, save_, dataset_type="membrane"):
+def plot_prediction_batch(images, masks, predictions, save_, dataset_type="membrane", dataset=None):
     assert images.shape[0] == masks.shape[0]
     assert masks.shape[0] == predictions.shape[0]
     plt.close("all")  # close plot windows, so they don't take up space
@@ -46,10 +46,15 @@ def plot_prediction_batch(images, masks, predictions, save_, dataset_type="membr
         # img
         img = img.permute(1, 2, 0)
         if is_one_dim:
-            axes[0].imshow(img.detach().cpu().numpy())
+            if dataset != "warwick":
+                axes[0].imshow(img.detach().cpu().numpy(), cmap="gray")
+            else:
+                axes[0].imshow(img.detach().cpu().numpy())
         else:
-            axes[i, 0].imshow(img.detach().cpu().numpy())
-
+            if dataset != "warwick":
+                axes[i, 0].imshow(img.detach().cpu().numpy(), cmap="gray")
+            else:
+                axes[i, 0].imshow(img.detach().cpu().numpy())
         # mask
         mask = mask_to_class_channel(mask, 2)
         mask = viz_mask_helper(mask, dataset_type)

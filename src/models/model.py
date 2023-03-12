@@ -5,12 +5,6 @@ import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 import matplotlib
 
-# Implement dropout
-#   enable_dropout : bool,
-#   dropout_prob : float
-#   enable pool_dropout : bool
-#   dropout_pool_prob : float
-
 
 class Conv_Block(nn.Module):
     def __init__(self, in_ch: int, out_ch: int, momentum, enable_dropout=False, dropout_prob=0.5):
@@ -108,7 +102,7 @@ class UNET(nn.Module):
         self.in_ch = in_ch
         self.out_ch = out_ch
 
-        self.init = Conv_Block(in_ch, 64, momentum, enable_dropout, dropout_prob)
+        self.init = Conv_Block(in_ch, 64, momentum, enable_dropout=False, dropout_prob=dropout_prob)
         self.Encode1 = Encoder(
             64,
             128,
@@ -136,13 +130,28 @@ class UNET(nn.Module):
         )
 
         self.Decode1 = Decoder(
-            1024, 512 // self.factor, bilinear_method, momentum, enable_dropout, dropout_prob
+            1024,
+            512 // self.factor,
+            bilinear_method,
+            momentum,
+            enable_dropout=enable_dropout,
+            dropout_prob=dropout_prob,
         )
         self.Decode2 = Decoder(
-            512, 256 // self.factor, bilinear_method, momentum, enable_dropout, dropout_prob
+            512,
+            256 // self.factor,
+            bilinear_method,
+            momentum,
+            enable_dropout=enable_dropout,
+            dropout_prob=dropout_prob,
         )
         self.Decode3 = Decoder(
-            256, 128 // self.factor, bilinear_method, momentum, enable_dropout, dropout_prob
+            256,
+            128 // self.factor,
+            bilinear_method,
+            momentum,
+            enable_dropout=enable_dropout,
+            dropout_prob=dropout_prob,
         )
         self.Decode4 = Decoder(
             128,
@@ -175,7 +184,7 @@ class UNET(nn.Module):
 
 def init_weights(model):
     if type(model) in [nn.Conv2d, nn.ConvTranspose2d]:
-        nn.init.kaiming_normal_(model.weight, mode="fan_in", nonlinearity="relu")
+        nn.init.xavier_normal_(model.weight)
         nn.init.normal_(model.bias, std=0.001)
 
 

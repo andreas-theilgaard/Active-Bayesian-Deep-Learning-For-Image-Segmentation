@@ -6,69 +6,32 @@ import wandb
 import subprocess
 from src.config import find_best_device
 import torch
+from src.data.data_utils import upload_file
 
 # dataset = os.environ['dataset']
 # print(f"Using dataset: {dataset}")
 # Download data
 # get_data()
 ##############
-save_path = os.environ["save_path"]
-dataset = os.environ["dataset"]
-
-bash_cmd = f"wandb server start"
-process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
-
-bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
-process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
-
-
-def init_env():
-    if not os.path.isdir("compare_results/"):
-        os.mkdir("compare_results")
-    bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
-    process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
-    output, error = process.communicate()
-    if not error:
-        print("Logged succesfully in to wandb")
-
+# save_path = os.environ["save_path"]
+# dataset = os.environ["dataset"]
+# print("hi")
+# bash_cmd = f"wandb server start"
+# process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+# output, error = process.communicate()
+# print("yo")
+# bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
+# process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+# output, error = process.communicate()
 
 from src.models.train_model import train
 from src.experiments.experiment_utils import arrayify_results
 
-
 # hyper_params in dictinary based on dataset type
-dataset_size = [0.01, 0.32]  # , 0.32, 0.63, 0.99]  # TO DO: do some more runs with other values
-# 5 and 6 maybe bad choice??
-seeds = [182, 322, 291, 292, 261]  # 122, 53, 261, 427, 174, 128]
-
-hyper_params = {
-    "membrane": {
-        0.01: {"lr": 0.0001, "momentum": 0.9},
-        0.32: {"lr": 0.001, "momentum": 0.6},
-        0.63: {"lr": 0.001, "momentum": 0.1},
-        0.99: {"lr": 0.001, "momentum": 0.1},
-    },
-    "warwick": {
-        0.01: {"lr": 0.001, "momentum": 0.9},
-        0.32: {"lr": 0.0001, "momentum": 0.6},
-        0.63: {"lr": 0.0001, "momentum": 0.1},
-        0.99: {"lr": 0.0001, "momentum": 0.1},
-    },
-    "PhC-C2DH-U373": {
-        0.01: {"lr": 0.001, "momentum": 0.9},
-        0.32: {"lr": 0.0001, "momentum": 0.6},
-        0.63: {"lr": 0.0001, "momentum": 0.1},
-        0.99: {"lr": 0.0001, "momentum": 0.1},
-    },
-    "DIC_C2DH_Hela": {
-        0.01: {"lr": 0.001, "momentum": 0.9},
-        0.32: {"lr": 0.0001, "momentum": 0.6},
-        0.63: {"lr": 0.0001, "momentum": 0.1},
-        0.99: {"lr": 0.0001, "momentum": 0.1},
-    },
-}
+# dataset_size = [0.01,0.32,0.63,0.99]
+# seeds = [21,4,7,9,12,45,17,5,8,10]
+dataset_size = [0.01]
+seeds = [21]
 
 methods = {
     "batchnorm": {"enable_dropout": False, "enable_pool_dropout": False},
@@ -81,14 +44,14 @@ methods = {
 def compare(dataset_size):
     # Clean up here remove redundancy
     parser = argparse.ArgumentParser(description="Training arguments")
-    parser.add_argument("--save_path", default="test")
-    parser.add_argument("--dataset", default="membrane")
-    parser.add_argument("--number_iters", default=5)
+    parser.add_argument("--save_path", default="compare_results/test")  #
+    parser.add_argument("--dataset", default="PhC-C2DH-U373")  #
+    parser.add_argument("--number_iters", default=1)
     parser.add_argument("--device", default=find_best_device())  # find_best_device
-    parser.add_argument("--bilinear_method", default=True)  # bilinear_method
+    parser.add_argument("--bilinear_method", default=False)  # bilinear_method
 
     parser.add_argument("--batch_size", default=4)
-    parser.add_argument("--epochs", default=100)
+    parser.add_argument("--epochs", default=10)
     parser.add_argument("--validation_size", default=0.33)
     parser.add_argument("--binary", default=True)
     parser.add_argument("--dropout_prob", default=0.5)
@@ -97,14 +60,14 @@ def compare(dataset_size):
     args = parser.parse_args()
     args.number_iters = int(args.number_iters)
     args.epochs = int(args.epochs)
-    args.save_path = f"compare_results/{args.save_path}"
+    args.save_path = f"results/{args.save_path}"
 
     for method in methods:
         for train_size in dataset_size:
             for iteration in range(args.number_iters):
                 # Get learning rate and momentum
-                lr = hyper_params[args.dataset][train_size]["lr"]
-                momentum = hyper_params[args.dataset][train_size]["momentum"]
+                lr = 0.001
+                momentum = 0.9
                 experiment_name = f"{args.dataset}_{method}_{train_size}"
                 job_type = f"run {iteration+1}"
                 seed = seeds[iteration]
@@ -132,16 +95,6 @@ def compare(dataset_size):
                 res = arrayify_results(stored_metrics, args.save_path)
 
 
-import subprocess
-
-
-def upload_result(save_path):
-    bash_cmd = f"/root/google-cloud-sdk/bin/gsutil cp compare_results/{save_path}.json gs://compare_methods_results"
-    process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
-    output, error = process.communicate()
-
-
 if __name__ == "__main__":
-    init_env()
     compare(dataset_size=dataset_size)
-    upload_result(save_path=save_path)
+    upload_file(file_path="compare_results/test")

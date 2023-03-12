@@ -1,4 +1,8 @@
 import torch
+import numpy as np
+from numpy import ndarray as array
+from torch.nn.functional import softmax
+from torch.nn.functional import one_hot
 
 
 class SegmentationMetrics:
@@ -45,6 +49,145 @@ class SegmentationMetrics:
         # numeric_stability = 1e-8
         IOU = TP / (TP + FN + FP)
         return IOU
+
+    def torch_their_dice(self, pred, mask):
+        assert torch.is_tensor(pred) == True
+        assert torch.is_tensor(mask) == True
+        mask = mask.unsqueeze(1)
+        pred = torch.sigmoid(pred)
+        intersection = torch.sum(pred * mask, dim=(1, 2, 3))
+        union = torch.sum(mask, dim=(1, 2, 3)) + torch.sum(pred, dim=(1, 2, 3))
+        smooth = 1e-12
+        dice = (2.0 * intersection + smooth) / (union + smooth)
+        return torch.mean(dice)
+
+
+class Calibration_Scoring_Metrics:
+    def __init__(self, nbins, multiclass, device, is_prob=False):
+
+        self.nbins = nbins
+        self.multiclass = multiclass
+        self.device = device
+        self.is_prob = is_prob
+
+    def brier_score(self, y_hat, y_true, sample_wise=True):
+        if isinstance(y_hat, array) and isinstance(y_true, array):
+            y_hat, y_true = torch.tensor(y_hat).to(self.device), torch.tensor(y_true).to(
+                self.device
+            )
+        if self.multiclass:
+            n_classes = y_hat.shape[1]
+            p = softmax(y_hat, dim=1)
+            y_true = one_hot(y_true.to(dtype=torch.int64), n_classes).permute(0, 3, 1, 2)
+            brier = torch.mean(
+                torch.sum(((p - y_true) ** 2), dim=1).view(y_hat.shape[0], -1), dim=1, keepdim=True
+            )
+            if not sample_wise:
+                brier = torch.mean(brier)
+            return brier.detach().cpu().numpy().ravel()
+        else:
+            p = torch.sigmoid(y_hat)
+            brier = torch.mean(((p - y_true) ** 2).view(y_hat.shape[0], -1), dim=1, keepdim=True)
+            if not sample_wise:
+                brier = torch.mean(brier)
+            return brier.detach().cpu().numpy().ravel()
+
+    def get_max_prob(self, y_hat):
+        # if self.multiclass:
+        #    print("not implemented yet")
+        # return torch.max(torch.softmax(y_hat,dim=1),dim=1)[0]
+        # else:
+        return torch.sigmoid(y_hat).squeeze(1)
+
+    def get_prediction(self, y_hat):
+        return y_hat >= 0.5
+
+    def Calibration_Errors(self, y_hat, y_true, num_bins, is_prob=False):
+        confidence = y_hat
+        if is_prob == False:
+            confidence = self.get_max_prob(y_hat)
+        bin_bounds = np.linspace(0, 1, num_bins + 1)
+        bin_ace = []  # Absolut calibration error
+        bin_accuracy = []  # Accuracy in bin
+        bin_confidence = []  # Confidence in bin
+
+        ECE = 0  # ECE
+
+        for i in range(num_bins):
+            mask = (confidence > bin_bounds[i]) & (confidence < bin_bounds[i + 1])
+            if torch.any(mask):
+                bin_acc = torch.mean(
+                    (
+                        (self.get_prediction(y_hat)[mask]).float()
+                        == (y_true.unsqueeze(0)[mask]).float()
+                    ).float()
+                )  # calculates accuracy in i'th bin
+                bin_conf = torch.mean(confidence[mask].float())  # calculates confidence in i'th bin
+
+                # absoulut calibration
+                ace = abs(bin_conf - bin_acc)  # *****
+                ECE += torch.mean(mask.float()) * ace
+
+                # store values
+                bin_ace.append(ace.item())
+                bin_accuracy.append(bin_acc.item())
+                bin_confidence.append(bin_conf.item())
+            else:
+                bin_ace.append(0)
+                bin_accuracy.append(0)
+                bin_confidence.append(0)
+        MCE = np.max(np.array(bin_ace))
+        out = {"ECE": ECE.item(), "MCE": MCE}
+        return out
+        # return ECE.item(), MCE,np.array(bin_ace), np.array(bin_accuracy), np.array(bin_confidence)
+
+    def NLL(self, y_hat, y_true, sample_wise=True):
+        if not self.multiclass:
+            if isinstance(y_hat, array) and isinstance(y_true, array):
+                y_hat, y_true = torch.tensor(y_hat).to(self.device), torch.tensor(y_true).to(
+                    self.device
+                )
+            # y_hat,y_true = y_hat.ravel(),y_true.ravel()
+            p = torch.sigmoid(y_hat)
+            # nll = -torch.mean(torch.sum(torch.log(p)*y_true.unsqueeze(1),dim=1).view(y_hat.shape[0],-1),dim=1,keepdim=True)
+            # nll = -torch.mean((y_true*torch.log(p) + (1-y_true)*torch.log(1-p)))
+            nll = -torch.mean(
+                (
+                    y_true.unsqueeze(1) * torch.log(p)
+                    + (1 - y_true.unsqueeze(1)) * torch.log(1 - p)
+                ).view(y_hat.shape[0], -1),
+                dim=1,
+                keepdim=True,
+            )
+            if not sample_wise:
+                nll = torch.mean(nll)
+            return nll.detach().cpu().numpy().ravel()
+        else:
+            if torch.is_tensor(y_hat) and torch.is_tensor(y_true):
+                p = softmax(y_hat, dim=1)
+                y_true = one_hot(y_true, y_hat.shape[1]).permute(0, 3, 1, 2)
+                nll = -torch.mean(
+                    torch.sum(torch.log(p) * y_true, dim=1).view(y_hat.shape[0], -1),
+                    dim=1,
+                    keepdim=True,
+                )
+                if not sample_wise:
+                    nll = torch.mean(nll)
+                return nll.detach().cpu().numpy().ravel()
+
+    def metrics(self, y_hat, y_true, sample_wise=True):
+        """
+        Samplewise get metrics for each sample in batch
+        """
+        NLL = self.NLL(y_hat, y_true, sample_wise=sample_wise)
+        brier_score = self.brier_score(y_hat, y_true, sample_wise=sample_wise)
+        return {"NLL": list(NLL), "brier_score": list(brier_score)}
+        # calib_metrics = [self.Calibration_Errors(y_hat[x],y_true[x],num_bins=self.nbins,is_prob=self.is_prob) for x in range(y_hat.shape[0])]
+        # return {'NLL':list(NLL),
+        #        'brier_score':list(brier_score),
+        #        'ECE':[calib_metrics[x]['ECE'] for x in range(len(calib_metrics))],
+        #        'MCE':[calib_metrics[x]['MCE'] for x in range(len(calib_metrics))]
+        #        }
 
 
 # yhat = torch.tensor([0,1,0,1])
