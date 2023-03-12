@@ -1,0 +1,5 @@
+steps:
+   - name: 'gcr.io/cloud-builders/docker'
+     args: ['build', '-t', 'gcr.io/bachelor-dev-377908/sweeper', '.']
+   - name: 'gcr.io/cloud-builders/docker'
+     args: ['push', 'gcr.io/bachelor-dev-377908/sweeper']

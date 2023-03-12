@@ -12,10 +12,9 @@ def load_ColorMapper():
     return ColorMapper
 
 
-ColorMapper = load_ColorMapper()
-
-
 def viz_mask_helper(mask, dataset_type):
+    ColorMapper = load_ColorMapper()
+
     seg_arr = mask.argmax(dim=2)
     output_height = seg_arr.shape[0]
     output_width = seg_arr.shape[1]

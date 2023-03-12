@@ -1,0 +1,19 @@
+program: sweep_model.py
+method: bayes
+metric:
+  goal: maximize
+  name: val_dice
+
+hydra:
+  run:
+    dir: .
+
+hyperparameters:
+  momentum:
+    distribution: uniform
+    min: 0.0001
+    max: 0.999
+  beta0:
+    distribution: uniform
+    min: 0.4
+    max: 0.99
