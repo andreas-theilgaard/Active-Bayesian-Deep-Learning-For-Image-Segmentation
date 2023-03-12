@@ -30,7 +30,7 @@ import wandb
 
 
 def train(
-    dataset="warwick",
+    dataset="PhC-C2DH-U373",
     train_size=0.99,
     epochs=50,
     lr=0.001,
@@ -48,8 +48,8 @@ def train(
     pool_dropout_prob=0.5,
     bilinear_method=False,
     model_method=None,
-    seed=21,
-    beta0=0.9,
+    seed=261,
+    beta0=0.5,
 ):
     parser = argparse.ArgumentParser(description="Training arguments")
     parser.add_argument("--model_method", default=model_method)
@@ -431,5 +431,5 @@ def train(
     return data_to_store
 
 
-if __name__ == "__main__":
-    train()
+# if __name__ == "__main__":
+#     train()

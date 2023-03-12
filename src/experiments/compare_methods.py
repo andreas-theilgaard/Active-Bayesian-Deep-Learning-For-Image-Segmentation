@@ -1,6 +1,5 @@
 import argparse
-
-# from src.data.get_data import get_data
+from src.data.data_utils import get_data
 import os
 import wandb
 import subprocess
@@ -8,21 +7,18 @@ from src.config import find_best_device
 import torch
 from src.data.data_utils import upload_file
 
-# dataset = os.environ['dataset']
-# print(f"Using dataset: {dataset}")
-# Download data
-# get_data()
-##############
-# save_path = os.environ["save_path"]
-# dataset = os.environ["dataset"]
-# print("hi")
-# bash_cmd = f"wandb server start"
-# process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
-# output, error = process.communicate()
-# print("yo")
-# bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
-# process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
-# output, error = process.communicate()
+
+dataset = os.environ["dataset"]
+save_path = os.environ["save_path"]
+print(f"Using dataset: {dataset}")
+print(f"The results '{save_path}' will be saved at 'results/{save_path}'")
+
+############## Setting Up Weights & Biases ###############
+bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
+process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+output, error = process.communicate()
+if not error:
+    print("Logged succesfully into wandb")
 
 from src.models.train_model import train
 from src.experiments.experiment_utils import arrayify_results
@@ -40,12 +36,12 @@ methods = {
     "pool__and_conv_layer_dropout": {"enable_dropout": True, "enable_pool_dropout": True},
 }
 
-#
+
 def compare(dataset_size):
     # Clean up here remove redundancy
     parser = argparse.ArgumentParser(description="Training arguments")
-    parser.add_argument("--save_path", default="compare_results/test")  #
-    parser.add_argument("--dataset", default="PhC-C2DH-U373")  #
+    parser.add_argument("--save_path", default=save_path)  #
+    parser.add_argument("--dataset", default=dataset)  #
     parser.add_argument("--number_iters", default=1)
     parser.add_argument("--device", default=find_best_device())  # find_best_device
     parser.add_argument("--bilinear_method", default=False)  # bilinear_method
@@ -96,5 +92,6 @@ def compare(dataset_size):
 
 
 if __name__ == "__main__":
+    get_data()
     compare(dataset_size=dataset_size)
-    upload_file(file_path="compare_results/test")
+    upload_file(file_path=save_path)

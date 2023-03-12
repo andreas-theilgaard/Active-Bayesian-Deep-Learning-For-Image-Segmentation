@@ -19,14 +19,7 @@ def train_split(
     Move to data filder
     """
     random_state = seed if seed else np.random.choice(0, 500, 1)
-    dataset = SegmentationData(
-        dataset=dataset,
-        img_height=64,
-        img_width=64,
-        to_binary=to_binary,
-        interpolate_image=interpolate_image,
-        interpolate_mask=interpolate_mask,
-    )
+    dataset = SegmentationData(dataset=dataset, img_height=64, img_width=64, to_binary=to_binary)
     train_idx, val_idx = train_test_split(
         list(range(len(dataset))), test_size=0.33, random_state=random_state
     )
