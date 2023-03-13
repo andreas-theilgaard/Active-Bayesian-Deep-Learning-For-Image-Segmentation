@@ -10,15 +10,18 @@ from src.data.data_utils import upload_file
 
 dataset = os.environ["dataset"]
 save_path = os.environ["save_path"]
+# dataset_size_used = os.environ["ds"]
 print(f"Using dataset: {dataset}")
 print(f"The results '{save_path}' will be saved at 'results/{save_path}'")
+# print(f"Using dataset size of {dataset_size_used}")
+# dataset_size = [dataset_size_used]
 
 ############## Setting Up Weights & Biases ###############
-bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
-process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
-if not error:
-    print("Logged succesfully into wandb")
+# bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
+# process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+# output, error = process.communicate()
+# if not error:
+#     print("Logged succesfully into wandb")
 
 from src.models.train_model import train
 from src.experiments.experiment_utils import arrayify_results
@@ -85,6 +88,7 @@ def compare(dataset_size):
                     bilinear_method=args.bilinear_method,
                     model_method=method,
                     seed=seed,
+                    turn_off_wandb=True,
                 )
                 res = arrayify_results(stored_metrics, args.save_path)
 

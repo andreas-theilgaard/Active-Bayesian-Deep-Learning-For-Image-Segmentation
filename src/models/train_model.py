@@ -24,6 +24,7 @@ from src.visualization.plot import plot_prediction_batch
 from src.config import Config
 from src.data.dataloader import train_split
 import pandas as pd
+from src.experiments.experiment_utils import arrayify_results
 
 # Initialize wandb
 import wandb
@@ -33,7 +34,7 @@ import time
 def train(
     dataset="PhC-C2DH-U373",
     train_size=0.99,
-    epochs=5,
+    epochs=100,
     lr=0.001,
     momentum=0.9,
     device="cpu",
@@ -51,6 +52,7 @@ def train(
     model_method=None,
     seed=261,
     beta0=0.9,
+    turn_off_wandb=True,
 ):
     parser = argparse.ArgumentParser(description="Training arguments")
     parser.add_argument("--model_method", default=model_method)
@@ -71,23 +73,24 @@ def train(
         17
     )  # seed used for weight initialization, this should be stochastic when using deep ensemble
     # init weights & biases
-    if experiment_name and job_type:
-        run_tracker = wandb.init(
-            entity="andr_dl_projects",
-            reinit=False,
-            project="Active Bayesian Deep Learning For Image Segmentation",
-            resume="allow",
-            group=experiment_name,
-            job_type=job_type,
-            anonymous="allow",
-        )
-    else:
-        run_tracker = wandb.init(
-            entity="andr_dl_projects",
-            reinit=False,
-            project="Active Bayesian Deep Learning For Image Segmentation",
-            resume="allow",
-        )
+    if not turn_off_wandb:
+        if experiment_name and job_type:
+            run_tracker = wandb.init(
+                entity="andr_dl_projects",
+                reinit=False,
+                project="Active Bayesian Deep Learning For Image Segmentation",
+                resume="allow",
+                group=experiment_name,
+                job_type=job_type,
+                anonymous="allow",
+            )
+        else:
+            run_tracker = wandb.init(
+                entity="andr_dl_projects",
+                reinit=False,
+                project="Active Bayesian Deep Learning For Image Segmentation",
+                resume="allow",
+            )
 
     n_classes = (
         1 if args.binary else Config.n_classes[args.dataset]
@@ -241,33 +244,37 @@ def train(
             optimizer.step()
 
             # For the first batch in each epoch, some image predictions are logged to wandb
-            if batch_number == 0:
-                if (epoch + 1) == args.epochs:
-                    save_ = True
-                fig = plot_prediction_batch(
-                    images, masks, predictions, save_=save_, dataset=args.dataset
-                )
-                wandb.log({"Training Predictions": fig})
-                if save_:
-                    wandb.log({"Final High Resolution Training Example": wandb.Image("pred.png")})
-                    os.remove("pred.png")
+            if not turn_off_wandb:
+                if batch_number == 0:
+                    if (epoch + 1) == args.epochs:
+                        save_ = True
+                    fig = plot_prediction_batch(
+                        images, masks, predictions, save_=save_, dataset=args.dataset
+                    )
+                    wandb.log({"Training Predictions": fig})
+                    if save_:
+                        wandb.log(
+                            {"Final High Resolution Training Example": wandb.Image("pred.png")}
+                        )
+                        os.remove("pred.png")
 
             # update tqdm loop
             train_loop.set_postfix({"loss": loss.item(), "train_dice": dice_vec[-1]})
 
         # Log metrics to wandb
         # TO DO: Other Metrics, ECE ??
-        wandb.log({"Train loss (epoch):": torch.tensor(train_loss).mean()})
-        wandb.log({"Train dice (epoch):": torch.tensor(dice_vec).mean()})
-        wandb.log({"Train pixel accuracy (epoch):": torch.tensor(pixel_acc_metric).mean()})
-        wandb.log({"Train IOU (epoch):": torch.tensor(iou_metric).mean()})
-        wandb.log({"Train dice own:": torch.tensor(dice_vec_own).mean()})
-        wandb.log({"Train dice confuse:": torch.tensor(dice_vec_own_confuse).mean()})
-        wandb.log({"Train soft dice": torch.tensor(train_soft_dice).mean()})
-        wandb.log({"Train IOU own": torch.tensor(train_IOU_own).mean()})
-        wandb.log({"Train ECE": torch.tensor(train_ECE_local).mean()})
-        wandb.log({"Train MCE": torch.tensor(train_MCE_local).mean()})
-        wandb.log({"Train Brier": torch.tensor(train_brier_local).mean()})
+        if not turn_off_wandb:
+            wandb.log({"Train loss (epoch):": torch.tensor(train_loss).mean()})
+            wandb.log({"Train dice (epoch):": torch.tensor(dice_vec).mean()})
+            wandb.log({"Train pixel accuracy (epoch):": torch.tensor(pixel_acc_metric).mean()})
+            wandb.log({"Train IOU (epoch):": torch.tensor(iou_metric).mean()})
+            wandb.log({"Train dice own:": torch.tensor(dice_vec_own).mean()})
+            wandb.log({"Train dice confuse:": torch.tensor(dice_vec_own_confuse).mean()})
+            wandb.log({"Train soft dice": torch.tensor(train_soft_dice).mean()})
+            wandb.log({"Train IOU own": torch.tensor(train_IOU_own).mean()})
+            wandb.log({"Train ECE": torch.tensor(train_ECE_local).mean()})
+            wandb.log({"Train MCE": torch.tensor(train_MCE_local).mean()})
+            wandb.log({"Train Brier": torch.tensor(train_brier_local).mean()})
 
         # Store to global for each epoch
         train_dice_global.append(torch.tensor(dice_vec).mean().item())
@@ -347,14 +354,19 @@ def train(
                     torch.max(masks.sum() / masks.numel(), 1 - masks.sum() / masks.numel()).item()
                 )
 
-                if batch_number == 0:
-                    fig = plot_prediction_batch(images, masks, predictions, save_=save_)
-                    wandb.log({"Validation Predictions": fig})
-                    if save_:
-                        wandb.log(
-                            {"Final High Resolution Validation Example": wandb.Image("pred.png")}
-                        )
-                        os.remove("pred.png")
+                if not turn_off_wandb:
+                    if batch_number == 0:
+                        fig = plot_prediction_batch(images, masks, predictions, save_=save_)
+                        wandb.log({"Validation Predictions": fig})
+                        if save_:
+                            wandb.log(
+                                {
+                                    "Final High Resolution Validation Example": wandb.Image(
+                                        "pred.png"
+                                    )
+                                }
+                            )
+                            os.remove("pred.png")
 
         val_soft_dice = torch.tensor(val_soft_dice).mean().item()
         val_dice_vec_own = torch.tensor(val_dice_vec_own).mean().item()
@@ -372,18 +384,19 @@ def train(
         val_MCE_local = torch.tensor(val_MCE_local).mean().item()
         val_brier_local = torch.tensor(val_brier_local).mean().item()
 
-        wandb.log({"Validation soft dice (epoch):": val_soft_dice})
-        wandb.log({"Validation acc baseline (epoch):": baseline})
-        wandb.log({"Validation loss (epoch):": val_loss})
-        wandb.log({"Validation dice (epoch):": val_dice})
-        wandb.log({"Validation pixel accuracy (epoch):": val_accuracy})
-        wandb.log({"Validation IOU (epoch):": val_iou})
-        wandb.log({"Validation dice own (epoch):": val_dice_vec_own})
-        wandb.log({"Validation dice own confuse (epoch):": val_dice_vec_own_confuse})
-        wandb.log({"Validation IOU own (epoch):": val_IOU_own})
-        wandb.log({"Validation ECE": val_ECE_local})
-        wandb.log({"Validation MCE": val_MCE_local})
-        wandb.log({"Validation Brier": val_brier_local})
+        if not turn_off_wandb:
+            wandb.log({"Validation soft dice (epoch):": val_soft_dice})
+            wandb.log({"Validation acc baseline (epoch):": baseline})
+            wandb.log({"Validation loss (epoch):": val_loss})
+            wandb.log({"Validation dice (epoch):": val_dice})
+            wandb.log({"Validation pixel accuracy (epoch):": val_accuracy})
+            wandb.log({"Validation IOU (epoch):": val_iou})
+            wandb.log({"Validation dice own (epoch):": val_dice_vec_own})
+            wandb.log({"Validation dice own confuse (epoch):": val_dice_vec_own_confuse})
+            wandb.log({"Validation IOU own (epoch):": val_IOU_own})
+            wandb.log({"Validation ECE": val_ECE_local})
+            wandb.log({"Validation MCE": val_MCE_local})
+            wandb.log({"Validation Brier": val_brier_local})
 
         # Store to global for each epoch
         val_dice_global.append(val_dice)
@@ -431,7 +444,12 @@ def train(
         "Experiment Number": (args.iter + 1),
         "Execution Time": execution_time,  # Measured in seconds
     }
-    wandb.finish()
+
+    if not turn_off_wandb:
+        tmp_df = arrayify_results(data_to_store, "results/tmp")
+        tmp_df.to_json(os.path.join(wandb.run.dir, "tmp.json"))
+        wandb.finish()
+        os.remove("results/tmp.json")
     return data_to_store
 
 
