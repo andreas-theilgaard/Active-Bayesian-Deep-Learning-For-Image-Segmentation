@@ -32,7 +32,7 @@ import wandb
 def train(
     dataset="PhC-C2DH-U373",
     train_size=0.99,
-    epochs=50,
+    epochs=5,
     lr=0.001,
     momentum=0.9,
     device="cpu",
@@ -49,7 +49,7 @@ def train(
     bilinear_method=False,
     model_method=None,
     seed=261,
-    beta0=0.5,
+    beta0=0.9,
 ):
     parser = argparse.ArgumentParser(description="Training arguments")
     parser.add_argument("--model_method", default=model_method)
@@ -431,5 +431,5 @@ def train(
     return data_to_store
 
 
-# if __name__ == "__main__":
-#     train()
+if __name__ == "__main__":
+    train()
