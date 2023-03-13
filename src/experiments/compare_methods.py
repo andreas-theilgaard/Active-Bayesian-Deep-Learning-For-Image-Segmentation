@@ -91,6 +91,7 @@ def compare(dataset_size):
                     turn_off_wandb=True,
                 )
                 res = arrayify_results(stored_metrics, args.save_path)
+            upload_file(file_path=f"{save_path}_{method}_{train_size}")
 
 
 if __name__ == "__main__":
