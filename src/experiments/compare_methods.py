@@ -24,10 +24,8 @@ from src.models.train_model import train
 from src.experiments.experiment_utils import arrayify_results
 
 # hyper_params in dictinary based on dataset type
-# dataset_size = [0.01,0.32,0.63,0.99]
-# seeds = [21,4,7,9,12,45,17,5,8,10]
-dataset_size = [0.01]
-seeds = [21]
+dataset_size = [0.01, 0.32, 0.63, 0.99]
+seeds = [21, 4, 7, 9, 12, 45, 17, 5, 8, 10]
 
 methods = {
     "batchnorm": {"enable_dropout": False, "enable_pool_dropout": False},
@@ -42,12 +40,12 @@ def compare(dataset_size):
     parser = argparse.ArgumentParser(description="Training arguments")
     parser.add_argument("--save_path", default=save_path)  #
     parser.add_argument("--dataset", default=dataset)  #
-    parser.add_argument("--number_iters", default=1)
+    parser.add_argument("--number_iters", default=10)
     parser.add_argument("--device", default=find_best_device())  # find_best_device
     parser.add_argument("--bilinear_method", default=False)  # bilinear_method
 
     parser.add_argument("--batch_size", default=4)
-    parser.add_argument("--epochs", default=10)
+    parser.add_argument("--epochs", default=100)
     parser.add_argument("--validation_size", default=0.33)
     parser.add_argument("--binary", default=True)
     parser.add_argument("--dropout_prob", default=0.5)

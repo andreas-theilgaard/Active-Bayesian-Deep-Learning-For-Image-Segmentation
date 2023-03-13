@@ -110,6 +110,35 @@ def deep_ensemble_predict(seeds, n_samples=500, device="cpu"):
     plt.show()
 
 
+# def MC_predict(
+#     mc_samples=50, n_samples=500, model_path="tests/train_reg_model_10.pt", device="cpu"
+# ):
+#     torch.manual_seed(10)
+#     model = NN(enable_dropout=True)
+#     model.load_state_dict(torch.load(model_path))
+#     model.to(device)
+#     model.eval()
+#     model.apply(enable_dropout)
+#     X, y = toy_data(n_samples=n_samples)
+#     X = torch.tensor(X, dtype=torch.float32).reshape(-1, 1).to(device)
+#     y = torch.tensor(y, dtype=torch.float32).to(device)
+
+#     preds_array = np.zeros((n_samples, mc_samples))
+#     for i in range(mc_samples):
+#         with torch.no_grad():
+#             predictions = model(X)
+#             predictions = predictions.detach().cpu().numpy()
+#             predictions = predictions.ravel()
+#             preds_array[:, i] = predictions
+#     print(preds_array)
+#     print(preds_array[:, i].shape)
+#     print(f"RMSE: {mean_squared_error(y,np.mean(preds_array,axis=1))}")
+#     plt.plot(X[:, 0], y, "r.")
+#     for i in range(mc_samples):
+#         plt.plot(X[:, 0], preds_array[:, i], "b.", alpha=1 / 200)
+#     plt.show()
+
+
 def MC_predict(
     mc_samples=50, n_samples=500, model_path="tests/train_reg_model_10.pt", device="cpu"
 ):
@@ -117,15 +146,16 @@ def MC_predict(
     model = NN(enable_dropout=True)
     model.load_state_dict(torch.load(model_path))
     model.to(device)
-    model.eval()
-    model.apply(enable_dropout)
     X, y = toy_data(n_samples=n_samples)
     X = torch.tensor(X, dtype=torch.float32).reshape(-1, 1).to(device)
     y = torch.tensor(y, dtype=torch.float32).to(device)
 
     preds_array = np.zeros((n_samples, mc_samples))
-    for i in range(mc_samples):
-        with torch.no_grad():
+    # for i in range(mc_samples):
+    with torch.no_grad():
+        model.eval()
+        model.apply(enable_dropout)
+        for i in range(mc_samples):
             predictions = model(X)
             predictions = predictions.detach().cpu().numpy()
             predictions = predictions.ravel()
@@ -139,8 +169,8 @@ def MC_predict(
     plt.show()
 
 
-type_ = "DE"
-# type_ = 'MCD'
+# type_ = "DE"
+type_ = "MCD"
 
 if __name__ == "__main__":
     if type_ == "DE":
