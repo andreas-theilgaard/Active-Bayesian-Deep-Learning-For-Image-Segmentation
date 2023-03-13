@@ -8,8 +8,8 @@ import torch
 from src.data.data_utils import upload_file
 
 
-dataset = "membrane"  # os.environ["dataset"]
-save_path = "compare_results/membrane_pt1"  # os.environ["save_path"]
+dataset = os.environ["dataset"]
+save_path = os.environ["save_path"]
 # dataset_size_used = os.environ["ds"]
 print(f"Using dataset: {dataset}")
 print(f"The results '{save_path}' will be saved at 'results/{save_path}'")
@@ -88,7 +88,7 @@ def compare(dataset_size):
                     bilinear_method=args.bilinear_method,
                     model_method=method,
                     seed=seed,
-                    turn_off_wandb=False,
+                    turn_off_wandb=True,
                 )
                 res = arrayify_results(stored_metrics, args.save_path)
             upload_file(file_path=save_path, file_name=f"{save_path}_{method}_{train_size}")
