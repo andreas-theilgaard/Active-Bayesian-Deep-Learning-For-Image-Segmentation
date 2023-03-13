@@ -129,7 +129,7 @@ def train(
     )
     optimizer = optim.Adam(model.parameters(), lr=lr, betas=(args.beta0, 0.999))
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, "min", patience=5, factor=0.1, threshold=0.01
+        optimizer, "min", patience=5, factor=0.1, threshold=0.001
     )
 
     # Define metrics that will be used
