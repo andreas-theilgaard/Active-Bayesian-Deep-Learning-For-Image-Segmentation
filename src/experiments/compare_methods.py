@@ -42,12 +42,12 @@ def compare(dataset_size):
     parser = argparse.ArgumentParser(description="Training arguments")
     parser.add_argument("--save_path", default=save_path)  #
     parser.add_argument("--dataset", default=dataset)  #
-    parser.add_argument("--number_iters", default=1)
+    parser.add_argument("--number_iters", default=10)
     parser.add_argument("--device", default=find_best_device())  # find_best_device
     parser.add_argument("--bilinear_method", default=False)  # bilinear_method
 
     parser.add_argument("--batch_size", default=4)
-    parser.add_argument("--epochs", default=10)
+    parser.add_argument("--epochs", default=100)
     parser.add_argument("--validation_size", default=0.33)
     parser.add_argument("--binary", default=True)
     parser.add_argument("--dropout_prob", default=0.5)

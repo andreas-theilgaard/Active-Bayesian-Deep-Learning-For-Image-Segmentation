@@ -15,6 +15,7 @@ COPY setup.py /setup.py
 COPY credentials.json /credentials.json
 COPY client_secrets.json /client_secrets.json
 COPY settings.yaml /settings.yaml
+COPY results /results/
 
 WORKDIR /
 RUN pip3 install --upgrade pip

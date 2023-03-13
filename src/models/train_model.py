@@ -27,6 +27,7 @@ import pandas as pd
 
 # Initialize wandb
 import wandb
+import time
 
 
 def train(
@@ -107,6 +108,7 @@ def train(
     in_ch = 1 if args.dataset != "warwick" else 3
     print(in_ch)
 
+    start = time.time()
     # Get model and intilize weights
     model = UNET(
         in_ch=in_ch,
@@ -401,9 +403,10 @@ def train(
     # store the metrics in one array
     # Train: loss | dice | pixel | iou | NLL | ECE | MCE | Brier | Soft Dice
     # Val: loss | dice | pixel | iou   | NLL | ECE | MCE | Brier | Soft Dice
-    # Other: datasize (train size) | method (batchmorm baseline, dropout, dropout pool, both dropout and pool dropout)  | Experiment number
-    # Total Columns: 9+9+3=21
-
+    # Other: datasize (train size) | method (batchmorm baseline, dropout, dropout pool, both dropout and pool dropout)  | Experiment number | Execution Time
+    # Total Columns: 9+9+4=22
+    end = time.time()
+    execution_time = end - start
     data_to_store = {
         "train_loss": [train_loss_global],
         "train_dice": [train_dice_global],
@@ -426,6 +429,7 @@ def train(
         "train_size": args.train_size,
         "method": args.model_method,
         "Experiment Number": (args.iter + 1),
+        "Execution Time": execution_time,  # Measured in seconds
     }
     wandb.finish()
     return data_to_store

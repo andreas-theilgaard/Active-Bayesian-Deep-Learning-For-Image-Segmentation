@@ -17,7 +17,6 @@ def get_data():
         )
         stdout, stderr = process.communicate()
         subprocess.call(["./src/data/get_data.sh"])
-        print(os.listdir())
         with zipfile.ZipFile("./data.zip", "r") as file:
             file.extractall("./data")
         os.remove("./data.zip")
