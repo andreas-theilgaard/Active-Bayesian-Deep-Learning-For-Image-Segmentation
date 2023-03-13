@@ -38,13 +38,13 @@ def get_data():
         print("Data already exists")
 
 
-def upload_file(file_path):
+def upload_file(file_path, file_name):
     gauth = GoogleAuth()
     drive = GoogleDrive(gauth)
     gfile = drive.CreateFile(
         {
             "parents": [{"id": "1sdBtDxKMqO0esCKaezY2TJqLhzt9ozeS"}],
-            "title": f"{file_path.split('/')[1]}.json",
+            "title": f"{file_name}.json",
         }
     )
     gfile.SetContentFile(f"results/{file_path}.json")
