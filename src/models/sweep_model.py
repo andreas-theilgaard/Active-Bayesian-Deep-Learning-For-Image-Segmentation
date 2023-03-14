@@ -1,5 +1,5 @@
 # Import libraries
-from src.data.initialize import get_data
+from src.data.data_utils import get_data
 import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Subset

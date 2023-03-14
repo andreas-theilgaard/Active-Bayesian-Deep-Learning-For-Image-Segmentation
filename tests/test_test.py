@@ -1,3 +1,11 @@
+# import pandas as pd
+# df = pd.read_json('results/compare_results/PhC-C2DH-U373_test.json')
+
+# len(df.columns)
+# df['train_loss'][0]
+# df['val_dice']
+
+
 # from src.config import find_best_device,Config
 # import torch
 # import torchvision

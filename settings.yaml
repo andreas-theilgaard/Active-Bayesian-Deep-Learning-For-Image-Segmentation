@@ -3,7 +3,7 @@ client config:
   client_id: 267647586179-1ol5fddppa4fua16sgd2hlcknbl6oopg.apps.googleusercontent.com
   client_secret: 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
 
-save_credentials: TRUE 
+save_credentials: TRUE
 save_credentials_backend: file
 save_credentials_file: credentials.json
 

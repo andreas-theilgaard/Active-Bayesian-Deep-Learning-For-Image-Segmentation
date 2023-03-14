@@ -97,8 +97,9 @@ target/
 /notebooks
 /hyper_params.txt
 /compare_results
-
-#
+*.pt
 *hydra
+*wandb
+/results/compare_results/*.json
+/results/active_learning/*.json
 *outputs
-*eksempel.py

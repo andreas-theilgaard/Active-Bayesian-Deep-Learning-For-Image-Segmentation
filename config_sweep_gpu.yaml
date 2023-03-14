@@ -5,5 +5,7 @@ workerPoolSpecs:
       acceleratorType: NVIDIA_TESLA_T4
       acceleratorCount: 1
    replicaCount: 1
-   containerSpec:
-      imageUri: gcr.io/bachelor-dev-377908/sweeper
+   spec:
+      containerSpec:
+         imageUri: gcr.io/bachelor-dev-377908/sweeper
+         args: ["-e", "dataset=membrane", "save_path=compare_results/membrane"]

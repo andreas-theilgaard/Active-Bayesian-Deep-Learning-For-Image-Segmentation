@@ -2,6 +2,8 @@ import gdown
 import os
 import subprocess
 import zipfile
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 
 
 def get_data():
@@ -15,7 +17,6 @@ def get_data():
         )
         stdout, stderr = process.communicate()
         subprocess.call(["./src/data/get_data.sh"])
-        print(os.listdir())
         with zipfile.ZipFile("./data.zip", "r") as file:
             file.extractall("./data")
         os.remove("./data.zip")
@@ -37,29 +38,19 @@ def get_data():
         print("Data already exists")
 
 
-def upload_file():
-    from pydrive.auth import GoogleAuth
-    from pydrive.drive import GoogleDrive
-
+def upload_file(file_path, file_name):
     gauth = GoogleAuth()
     drive = GoogleDrive(gauth)
     gfile = drive.CreateFile(
-        {"parents": [{"id": "1UmD1_yE5nz5jcZPGDyK2iI-I-7a-P7Mj"}], "title": "hello123.txt"}
+        {
+            "parents": [{"id": "1sdBtDxKMqO0esCKaezY2TJqLhzt9ozeS"}],
+            "title": f"{file_name}.json",
+        }
     )
-    gfile.SetContentString("Hello Hello!")
+    gfile.SetContentFile(f"results/{file_path}.json")
     gfile.Upload()  # Upload the file.
 
 
-####
-# drive.ListFile('1IGN2yqPeUmJpzifrOE8Y4VMjn4Qmrr3x')
-# file_list = drive.ListFile({'q': "1IGN2yqPeUmJpzifrOE8Y4VMjn4Qmrr3x in parents and trashed=false"}).GetList()
-# file_list = drive.ListFile({'q': "'1w-TyCSLDGQbantlvK93imJaNABazXwy1' in parents and trashed=false"}).GetList()
-# file_list[0]
-
-# drive.ListFile({'q': "'1w-TyCSLDGQbantlvK93imJaNABazXwy1'"}).GetList()
-
-# gauth.LocalWebserverAuth()
-
-if __name__ == "__main__":
-    get_data()
-# upload_file()
+# if __name__ == "__main__":
+#     #get_data()
+#     upload_file('compare_results/test')
