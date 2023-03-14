@@ -2,6 +2,8 @@
 workerPoolSpecs:
    machineSpec:
       machineType: n2-highcpu-16
+   diskSpec:
+      bootDiskSizeGb: 200
    replicaCount: 1
    containerSpec:
       imageUri: gcr.io/bachelor-dev-377908/run_compare

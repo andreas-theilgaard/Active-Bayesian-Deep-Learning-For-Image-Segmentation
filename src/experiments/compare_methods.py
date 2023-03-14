@@ -42,7 +42,7 @@ def compare(dataset_size):
     parser = argparse.ArgumentParser(description="Training arguments")
     parser.add_argument("--save_path", default=save_path)  #
     parser.add_argument("--dataset", default=dataset)  #
-    parser.add_argument("--number_iters", default=10)
+    parser.add_argument("--number_iters", default=5)
     parser.add_argument("--device", default=find_best_device())  # find_best_device
     parser.add_argument("--bilinear_method", default=False)  # bilinear_method
 
