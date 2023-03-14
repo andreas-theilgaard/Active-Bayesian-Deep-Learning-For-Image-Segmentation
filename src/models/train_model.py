@@ -231,12 +231,16 @@ def train(
             train_loss.append(loss.item())
             calib_metrics = calibration_metrics.metrics(predictions, masks)
             train_NLL_local += calib_metrics["NLL"]
-            train_ECE_local.append(
-                torch_ECE(predictions.squeeze(1), masks).item()
-            )  # calib_metrics['ECE']
-            train_MCE_local.append(
-                torch_MCE(predictions.squeeze(1), masks).item()
-            )  # calib_metrics['MCE']
+            try:
+                train_ECE_local.append(
+                    torch_ECE(predictions.squeeze(1), masks).item()
+                )  # calib_metrics['ECE']
+                train_MCE_local.append(
+                    torch_MCE(predictions.squeeze(1), masks).item()
+                )  # calib_metrics['MCE']
+            except:
+                train_ECE_local.append(0)
+                train_MCE_local.append(0)
             train_brier_local += calib_metrics["brier_score"]
 
             # backpropagation
@@ -341,12 +345,16 @@ def train(
 
                 calib_metrics = calibration_metrics.metrics(predictions, masks)
                 val_NLL_local += calib_metrics["NLL"]
-                val_ECE_local.append(
-                    torch_ECE(predictions.squeeze(1), masks).item()
-                )  # calib_metrics['ECE']
-                val_MCE_local.append(
-                    torch_MCE(predictions.squeeze(1), masks).item()
-                )  # calib_metrics['MCE']
+                try:
+                    val_ECE_local.append(
+                        torch_ECE(predictions.squeeze(1), masks).item()
+                    )  # calib_metrics['ECE']
+                    val_MCE_local.append(
+                        torch_MCE(predictions.squeeze(1), masks).item()
+                    )  # calib_metrics['MCE']
+                except:
+                    val_ECE_local.append(0)
+                    val_MCE_local.append(0)
                 val_brier_local += calib_metrics["brier_score"]
 
                 val_loop.set_postfix(**{"loss (batch)": loss.item(), "val_dice": val_dice_vec[-1]})

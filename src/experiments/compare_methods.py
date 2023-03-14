@@ -8,8 +8,8 @@ import torch
 from src.data.data_utils import upload_file
 
 
-dataset = os.environ["dataset"]
-save_path = os.environ["save_path"]
+dataset = "membrane"  # os.environ["dataset"]
+save_path = "compare_results/membrane_pt1"  # os.environ["save_path"]
 # dataset_size_used = os.environ["ds"]
 print(f"Using dataset: {dataset}")
 print(f"The results '{save_path}' will be saved at 'results/{save_path}'")
@@ -29,7 +29,6 @@ from src.experiments.experiment_utils import arrayify_results
 # hyper_params in dictinary based on dataset type
 dataset_size = [0.01, 0.32, 0.63, 0.99]
 seeds = [21, 4, 7, 9, 12, 45, 17, 5, 8, 10]
-# seeds = [21,4,7,9,12]
 methods = {
     "batchnorm": {"enable_dropout": False, "enable_pool_dropout": False},
     "conv__layer_dropout": {"enable_dropout": True, "enable_pool_dropout": False},
@@ -88,7 +87,7 @@ def compare(dataset_size):
                     bilinear_method=args.bilinear_method,
                     model_method=method,
                     seed=seed,
-                    turn_off_wandb=True,
+                    turn_off_wandb=False,
                 )
                 res = arrayify_results(stored_metrics, args.save_path)
             upload_file(file_path=save_path, file_name=f"{save_path}_{method}_{train_size}")
