@@ -1,11 +1,12 @@
 # config_gpu.yaml
 workerPoolSpecs:
    machineSpec:
-      machineType: n1-standard-8
-      acceleratorType: NVIDIA_TESLA_V100
-      acceleratorCount: 1
+      machineType: n1-highmem-16
    replicaCount: 1
-   spec:
-      containerSpec:
-         imageUri: gcr.io/bachelor-dev-377908/run_compare
-         args: ["-e", "dataset=PhC-C2DH-U373", "save_path=compare_results/PhC-C2DH-U373"]
+   containerSpec:
+      imageUri: gcr.io/bachelor-dev-377908/run_compare
+      env:
+         - name: dataset
+           value: "PhC-C2DH-U373"
+         - name: save_path
+           value: "compare_results/PhC-C2DH-U373"
