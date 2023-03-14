@@ -1,7 +1,7 @@
 # config_gpu.yaml
 workerPoolSpecs:
    machineSpec:
-      machineType: n1-highmem-16
+      machineType: n2-highcpu-16
    replicaCount: 1
    containerSpec:
       imageUri: gcr.io/bachelor-dev-377908/run_compare

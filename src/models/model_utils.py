@@ -61,6 +61,20 @@ class SegmentationMetrics:
         dice = (2.0 * intersection + smooth) / (union + smooth)
         return torch.mean(dice)
 
+    def pixel_acc(self, yhat, y_true):
+        assert torch.is_tensor(yhat) == True
+        assert torch.is_tensor(y_true) == True
+        if yhat.min().item() < 0.0:
+            yhat = (torch.sigmoid(yhat) >= 0.50).float()
+
+        TP = (yhat.flatten() * y_true.flatten()).sum()
+        FN = y_true[yhat == 0].sum()
+        FP = yhat[y_true == 0].sum()
+        TN = yhat.numel() - TP - FN - FP
+
+        pixel_acc = (TP + TN) / (TP + FN + FP + TN)
+        return pixel_acc
+
 
 class Calibration_Scoring_Metrics:
     def __init__(self, nbins, multiclass, device, is_prob=False):

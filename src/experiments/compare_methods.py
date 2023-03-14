@@ -17,18 +17,18 @@ print(f"The results '{save_path}' will be saved at 'results/{save_path}'")
 # dataset_size = [dataset_size_used]
 
 ############## Setting Up Weights & Biases ###############
-bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
-process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
-if not error:
-    print("Logged succesfully into wandb")
+# bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
+# process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
+# output, error = process.communicate()
+# if not error:
+#     print("Logged succesfully into wandb")
 
 from src.models.train_model import train
 from src.experiments.experiment_utils import arrayify_results
 
 # hyper_params in dictinary based on dataset type
-dataset_size = [0.01, 0.32, 0.63, 0.99]
-seeds = [21, 4, 7, 9, 12, 45, 17, 5, 8, 10]
+dataset_size = [0.01, 0.32, 0.63]  # , 0.99]
+seeds = [21, 4, 7, 9, 12]  # , 45, 17, 5, 8, 10]
 methods = {
     "batchnorm": {"enable_dropout": False, "enable_pool_dropout": False},
     "conv__layer_dropout": {"enable_dropout": True, "enable_pool_dropout": False},
@@ -87,7 +87,7 @@ def compare(dataset_size):
                     bilinear_method=args.bilinear_method,
                     model_method=method,
                     seed=seed,
-                    turn_off_wandb=False,
+                    turn_off_wandb=True,
                 )
                 res = arrayify_results(stored_metrics, args.save_path)
             upload_file(file_path=save_path, file_name=f"{save_path}_{method}_{train_size}")
