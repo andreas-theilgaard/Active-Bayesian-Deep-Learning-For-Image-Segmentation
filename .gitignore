@@ -89,7 +89,7 @@ target/
 
 # Mypy cache
 .mypy_cache/
-
+.png
 # Ignore these folders for now
 /Thesis/
 /Project Plan/

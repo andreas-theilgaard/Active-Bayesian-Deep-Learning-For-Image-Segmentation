@@ -68,4 +68,4 @@ class SegmentationData(Dataset):
                 image = image.permute(2, 0, 1)
         image = image / 255
         mask = torch.tensor(mask)
-        return (image, mask)
+        return (image, mask, idx)

@@ -1,7 +1,7 @@
 # config_gpu.yaml
 workerPoolSpecs:
    machineSpec:
-      machineType: n2-highcpu-16
+      machineType: n1-highmem-32
    diskSpec:
       bootDiskSizeGb: 200
    replicaCount: 1
@@ -9,6 +9,6 @@ workerPoolSpecs:
       imageUri: gcr.io/bachelor-dev-377908/run_compare
       env:
          - name: dataset
-           value: "PhC-C2DH-U373"
+           value: "membrane"
          - name: save_path
-           value: "compare_results/PhC-C2DH-U373"
+           value: "compare_results/membrane"
