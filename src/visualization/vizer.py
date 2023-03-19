@@ -15,6 +15,7 @@ def show_compare_results(dataset, cols, sizes, label=None, save_path=None, metho
     assert len(cols) <= 3, "Only three columns can be plotted"
     try:
         df = pd.read_json(f"results/compare_results/{dataset}.json")
+        print(df.columns)
     except:
         print(f"{dataset} not found. Sure the dataset has been specified correctly?")
         return NameError
@@ -26,7 +27,11 @@ def show_compare_results(dataset, cols, sizes, label=None, save_path=None, metho
         "pool__and_conv_layer_dropout": "Conv and Pool Dropout",
     }
     colors = [("navy", "mediumpurple"), ("orangered", "salmon"), ("yellowgreen", "darkgreen")]
-    title_mapper = {"DIC_C2DH_Hela": "DIC-Hela", "PhC-C2DH-U373": "PhC-U373"}
+    title_mapper = {
+        "DIC_C2DH_Hela": "DIC-Hela",
+        "PhC-C2DH-U373": "PhC-U373",
+        "membrane": "Membrane",
+    }
 
     fig, axes = plt.subplots(len(sizes), len(methods))
     fig.set_size_inches(15, 12)
@@ -77,8 +82,15 @@ def show_compare_results(dataset, cols, sizes, label=None, save_path=None, metho
 
 
 if __name__ == "__main__":
-    # show_compare_results('DIC_C2DH_Hela',['val_dice'],[0.01, 0.32, 0.63],'Dice Score',save_path='results/assets/test.png')
-    show_compare_results("PhC-C2DH-U373", ["val_dice"], [0.01, 0.32, 0.63], "Dice Score")
+    show_compare_results(
+        "DIC_C2DH_Hela",
+        ["val_dice"],
+        [0.01, 0.32, 0.63],
+        "Dice Score",
+        save_path="results/assets/DIC_C2DH_Hela.png",
+    )
+    # show_compare_results("PhC-C2DH-U373", ["val_dice"], [0.01, 0.32, 0.63], "Dice Score",save_path='results/assets/PhC-C2DH-U373.png')
+    # show_compare_results("membrane", ["val_dice"], [0.01, 0.32, 0.63], "Dice Score",save_path='results/assets/membrane.png')
 
 
 # df.columns

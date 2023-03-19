@@ -9,6 +9,6 @@ workerPoolSpecs:
       imageUri: gcr.io/bachelor-dev-377908/run_compare
       env:
          - name: dataset
-           value: "membrane"
+           value: "warwick"
          - name: save_path
-           value: "compare_results/membrane"
+           value: "compare_results/warwick"

@@ -103,3 +103,4 @@ target/
 /results/compare_results/*.json
 /results/active_learning/*.json
 *outputs
+.png
