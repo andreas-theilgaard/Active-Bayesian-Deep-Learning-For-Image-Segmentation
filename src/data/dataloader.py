@@ -26,6 +26,8 @@ def train_split(
     if (len(train_idx) * train_size) < 1.0:
         train_size = 1
     train_idx, _ = train_test_split(train_idx, train_size=train_size, random_state=random_state)
+    print(train_idx)
+    print(val_idx)
     print(f"Training with {len(train_idx)} images!")
     print(f"Validating with {len(val_idx)} images!")
     train_loader = Subset(dataset, train_idx)

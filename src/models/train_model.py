@@ -33,7 +33,7 @@ import time
 
 def train(
     dataset="PhC-C2DH-U373",
-    train_size=0.99,
+    train_size=0.999,
     epochs=100,
     lr=0.001,
     momentum=0.9,
@@ -51,7 +51,7 @@ def train(
     bilinear_method=False,
     model_method=None,
     seed=261,
-    beta0=0.9,
+    beta0=0.5,
     turn_off_wandb=True,
 ):
     parser = argparse.ArgumentParser(description="Training arguments")
@@ -462,4 +462,5 @@ def train(
 
 
 if __name__ == "__main__":
+    torch.manual_seed(17)
     train()

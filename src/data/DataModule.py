@@ -30,6 +30,7 @@ class SegmentationData(Dataset):
         )
         self.data_path = f"data/raw/{self.path}"
         self.images = [x for x in os.listdir(f"{self.data_path}/image") if x != ".DS_Store"]
+        self.images = sorted(self.images)
 
     def __len__(self):
         return len(self.images)

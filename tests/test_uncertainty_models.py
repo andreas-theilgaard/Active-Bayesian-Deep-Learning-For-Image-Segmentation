@@ -57,6 +57,24 @@ class NN(nn.Module):
         return self.layers(x)
 
 
+class EarlyStopping:
+    def __init__(self, patience, threshold):
+        self.patience = patience
+        self.min_delta = threshold
+        self.counter = 0
+        self.min_validation_loss = np.inf
+
+    def __call__(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+
+
 def train(enable_dropout_var=False, n_samples=500, epochs=100, device="cpu", seed=7):
     train_data = get_toy_data(n_samples=n_samples)
     model = NN(enable_dropout=enable_dropout_var)
@@ -64,7 +82,11 @@ def train(enable_dropout_var=False, n_samples=500, epochs=100, device="cpu", see
     criterion = nn.MSELoss().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     torch.manual_seed(seed)
+    global_loss_vec = []
+    Early_Stopping = EarlyStopping(10, 0.005)
+
     for _ in tqdm(range(epochs)):
+        loss_vec = []
         for batch in train_data:
             X, y = batch
             X = X.to(device)
@@ -74,6 +96,14 @@ def train(enable_dropout_var=False, n_samples=500, epochs=100, device="cpu", see
             loss = criterion(pred.squeeze(1), y)
             loss.backward()
             optimizer.step()
+            loss_vec.append(loss.item())
+        mean_loss = torch.mean(torch.tensor(loss_vec)).item()
+        global_loss_vec.append(mean_loss)
+        if Early_Stopping(mean_loss):
+            print(f"Stopped Training Due To No Improvement, epoch {_+1}")
+            break
+    plt.plot(global_loss_vec)
+    plt.show()
     torch.save(model.state_dict(), f"tests/train_reg_model_{seed}.pt")
 
 
@@ -89,7 +119,6 @@ def deep_ensemble_predict(seeds, n_samples=500, device="cpu"):
     X, y = toy_data(n_samples=n_samples)
     X = torch.tensor(X, dtype=torch.float32).reshape(-1, 1).to(device)
     y = torch.tensor(y, dtype=torch.float32).to(device)
-
     for i in range(len(seeds)):
         model = NN()
         model.load_state_dict(torch.load(f"tests/train_reg_model_{seeds[i]}.pt"))
@@ -101,8 +130,6 @@ def deep_ensemble_predict(seeds, n_samples=500, device="cpu"):
             predictions = predictions.ravel()
             preds_array[:, i] = predictions
 
-    print(preds_array)
-    print(preds_array[:, i].shape)
     print(f"RMSE: {mean_squared_error(y,np.mean(preds_array,axis=1))}")
     plt.plot(X[:, 0], y, "r.")
     for i in range(len(seeds)):
@@ -184,6 +211,6 @@ if __name__ == "__main__":
     elif type_ == "MCD":
         # MC Dropout
         torch.manual_seed(10)
-        train(enable_dropout_var=True, n_samples=500, epochs=100, device="cpu", seed=10)
+        train(enable_dropout_var=True, n_samples=500, epochs=1000, device="cpu", seed=10)
         print("MC Predictions")
         MC_predict(mc_samples=50, n_samples=500)

@@ -7,14 +7,17 @@ from src.config import find_best_device
 import torch
 from src.data.data_utils import upload_file
 
-
-dataset = os.environ["dataset"]
-save_path = os.environ["save_path"]
-# dataset_size_used = os.environ["ds"]
-print(f"Using dataset: {dataset}")
-print(f"The results '{save_path}' will be saved at 'results/{save_path}'")
-# print(f"Using dataset size of {dataset_size_used}")
-# dataset_size = [dataset_size_used]
+# glob_parser = argparse.ArgumentParser(description="Training arguments")
+# glob_parser.add_argument("--save_path")  #
+# glob_parser.add_argument("--dataset")  #
+# glob_args = glob_parser.parse_args()
+# #dataset = os.environ["dataset"]
+# #save_path = os.environ["save_path"]
+# # dataset_size_used = os.environ["ds"]
+# print(f"Using dataset: {glob_args.dataset}")
+# print(f"The results '{glob_args.save_path}' will be saved at 'results/{glob_args.save_path}'")
+# # print(f"Using dataset size of {dataset_size_used}")
+# # dataset_size = [dataset_size_used]
 
 ############## Setting Up Weights & Biases ###############
 # bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
@@ -40,8 +43,8 @@ methods = {
 def compare(dataset_size):
     # Clean up here remove redundancy
     parser = argparse.ArgumentParser(description="Training arguments")
-    parser.add_argument("--save_path", default=save_path)  #
-    parser.add_argument("--dataset", default=dataset)  #
+    parser.add_argument("--save_path", default="compare_result/PhC_Big")  #
+    parser.add_argument("--dataset", default="PhC-C2DH-U373")  #
     parser.add_argument("--number_iters", default=5)
     parser.add_argument("--device", default=find_best_device())  # find_best_device
     parser.add_argument("--bilinear_method", default=False)  # bilinear_method
@@ -90,10 +93,10 @@ def compare(dataset_size):
                     turn_off_wandb=True,
                 )
                 res = arrayify_results(stored_metrics, args.save_path)
-            upload_file(file_path=save_path, file_name=f"{save_path}_{method}_{train_size}")
+            # upload_file(file_path=save_path, file_name=f"{save_path}_{method}_{train_size}")
 
 
 if __name__ == "__main__":
     get_data()
     compare(dataset_size=dataset_size)
-    upload_file(file_path=save_path, file_name=f"{save_path.split('/')[1]}")
+    # upload_file(file_path=save_path, file_name=f"{save_path.split('/')[1]}")
