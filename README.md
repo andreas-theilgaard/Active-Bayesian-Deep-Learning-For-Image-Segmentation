@@ -20,6 +20,23 @@ Create virtual environment containing the packages used for this project by the 
 conda env create -f environment.yml
 ```
 
+Or manually by
+```
+pip3 install -r requirements.txt
+```
+And then install Pytorch by:
+```
+pip3 install torch torchvision
+```
+for cpu
+
+and 
+```
+pip3 install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+```
+for gpu
+
+
 Project Organization
 ------------
 
