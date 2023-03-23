@@ -104,3 +104,5 @@ target/
 /results/active_learning/*.json
 *outputs
 *.png
+*.pt
+*.pth

@@ -4,9 +4,6 @@ from torch.utils.data import DataLoader, Subset
 import numpy as np
 import torch
 
-# np.random.seed(7)
-# torch.manual_seed(7)
-
 
 def train_split(train_size, dataset, batch_size, to_binary, num_workers=0, seed=None):
     """
@@ -24,6 +21,7 @@ def train_split(train_size, dataset, batch_size, to_binary, num_workers=0, seed=
     )
     print(f"Training with {len(train_idx)} images!")
     print(f"Validating with {len(val_idx)} images!")
+    print(f"Unlabeled pool size {len(unlabeled_pool_idx)} images")
     train_loader = Subset(dataset, train_idx)
     val_loader = Subset(dataset, val_idx)
     unlabeled_loader = Subset(dataset, unlabeled_pool_idx)
@@ -210,6 +208,3 @@ if __name__ == "__main__":
             # do validation
 
         first_run = False
-    import pandas as pd
-
-    print(pd.read_json(f"results/active_learning/test.json"))

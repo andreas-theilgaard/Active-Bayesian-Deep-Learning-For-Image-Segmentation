@@ -1,4 +1,5 @@
 # Import libraries
+import math
 import torch
 from tqdm import tqdm
 import torch.nn as nn
@@ -15,6 +16,7 @@ import argparse
 import os
 from src.models.model_utils import SegmentationMetrics, Calibration_Scoring_Metrics
 from torchmetrics.classification import BinaryCalibrationError
+import hydra
 
 # Import modules
 from src.models.model import UNET, init_weights
@@ -22,93 +24,245 @@ from src.models.model import UNET, init_weights
 # from src.models.new_model import UNET, init_weights
 from src.visualization.plot import plot_prediction_batch
 from src.config import Config
-from src.data.dataloader import train_split
+from src.data.dataloader import train_split, data_from_index
 import pandas as pd
 from src.experiments.experiment_utils import arrayify_results
+import numpy as np
 
 # Initialize wandb
 import wandb
 import time
+from src.models.active_learning_utils import ActiveLearningAcquisitions
+from src.experiments.experiment_utils import arrayify_results
 
 
-def train(
-    dataset="PhC-C2DH-U373",
-    train_size=0.99,
-    epochs=100,
-    lr=0.001,
+def init_params(
     momentum=0.9,
-    device="cpu",
+    in_ch=1,
+    out_ch=1,
+    bilinear_method=False,
+    enable_dropout=False,
+    dropout_prob=0.5,
+    enable_pool_dropout=False,
+    pool_dropout_prob=0.5,
+):
+    print(
+        f""" U-Net Model Parameters: \n ---------------------- \n momentum: {momentum} \n in_ch: {in_ch} \n out_ch: {out_ch}\n bilinear_method: {bilinear_method}\n enable_dropout: {enable_dropout} \n dropout_prob: {dropout_prob}\n enable_pool_dropout: {enable_pool_dropout}\n pool_dropout_prob: {pool_dropout_prob} \n ----------------------"""
+    )
+
+
+class CollectMetrics:
+    def __init__(self, device, out_ch):
+
+        self.device = device
+        self.out_ch = out_ch
+        # Define metrics that will be used
+        self.dice = (
+            BinaryF1Score().to(device)
+            if out_ch == 1
+            else Dice(average="micro", ignore_index=0).to(device)
+        )
+        self.pixel_acc = (
+            MulticlassAccuracy(num_classes=out_ch, validate_args=True).to(device)
+            if out_ch > 1
+            else BinaryAccuracy(validate_args=True).to(device)
+        )
+        self.IOU_score = BinaryJaccardIndex().to(device)
+        self.metrics = SegmentationMetrics()
+        self.calibration_metrics = Calibration_Scoring_Metrics(
+            nbins=15, multiclass=False, device=device
+        )
+        self.torch_ECE = BinaryCalibrationError(n_bins=15, norm="l1").to(device)
+        self.torch_MCE = BinaryCalibrationError(n_bins=15, norm="max").to(device)
+
+        # Globals
+        self.dice_global = []
+        self.pixel_acc_global = []
+        self.IOU_score_global = []
+        self.loss_global = []
+        self.NLL_global = []
+        self.ECE_global = []
+        self.MCE_global = []
+        self.brier_global = []
+        self.soft_dice_global = []
+
+        # Locals
+        self.dice_vec_local = []
+        self.loss_local = []
+        self.pixel_acc_local = []
+        self.iou_local = []
+        self.dice_own_local = []
+        self.dice_own_confuse_local = []
+        self.soft_dice_local = []
+        self.IOU_own_local = []
+        self.NLL_local = []
+        self.ECE_local = []
+        self.MCE_local = []
+        self.brier_local = []
+
+    def GetMetrics(self, predictions, masks, loss):
+        # Dice Score
+        self.dice_vec_local.append(
+            self.dice(predictions.squeeze(1), masks.type(torch.float32)).item()
+        )
+        self.dice_own_local.append(
+            self.metrics.Dice_Coef(predictions.squeeze(1), masks.type(torch.float32)).item()
+        )
+        self.dice_own_confuse_local.append(
+            self.metrics.Dice_Coef_Confusion(
+                predictions.squeeze(1), masks.type(torch.float32)
+            ).item()
+        )
+        # Soft dice
+        self.soft_dice_local.append(self.metrics.torch_their_dice(predictions, masks).item())
+        # IOU
+        self.IOU_own_local.append(
+            self.metrics.IOU_(predictions.squeeze(1), masks.type(torch.float32)).item()
+        )
+        self.iou_local.append(self.IOU_score(predictions.squeeze(1), masks).item())
+        # Pixel accuracy
+        self.pixel_acc_local.append(self.pixel_acc(predictions.squeeze(1), masks).item())
+        # Loss
+        self.loss_local.append(loss.item())
+        # Calib Metrics
+        calib_metrics = self.calibration_metrics.metrics(predictions, masks)
+        self.NLL_local += calib_metrics["NLL"]
+        try:
+            self.ECE_local.append(
+                self.torch_ECE(predictions.squeeze(1), masks).item()
+            )  # calib_metrics['ECE']
+            self.MCE_local.append(
+                self.torch_MCE(predictions.squeeze(1), masks).item()
+            )  # calib_metrics['MCE']
+        except:
+            self.ECE_local.append(0)
+            self.MCE_local.append(0)
+        self.brier_local += calib_metrics["brier_score"]
+
+        return (self.loss_local[-1], self.dice_vec_local[-1])
+
+    def AppendToGlobal(self):
+        self.dice_global.append(torch.tensor(self.dice_vec_local).mean().item())
+        self.pixel_acc_global.append(torch.tensor(self.pixel_acc_local).mean().item())
+        self.IOU_score_global.append(torch.tensor(self.iou_local).mean().item())
+        self.loss_global.append(torch.tensor(self.loss_local).mean().item())
+        self.NLL_global.append(torch.tensor(self.NLL_local).mean().item())
+        self.ECE_global.append(torch.tensor(self.ECE_local).mean().item())
+        self.MCE_global.append(torch.tensor(self.MCE_local).mean().item())
+        self.brier_global.append(torch.tensor(self.brier_local).mean().item())
+        self.brier_local.append(torch.tensor(self.soft_dice_local).mean())
+        # Now reset local arrays
+        self.dice_vec_local = []
+        self.loss_local = []
+        self.pixel_acc_local = []
+        self.iou_local = []
+        self.dice_own_local = []
+        self.dice_own_confuse_local = []
+        self.soft_dice_local = []
+        self.IOU_own_local = []
+        self.NLL_local = []
+        self.ECE_local = []
+        self.MCE_local = []
+        self.brier_local = []
+
+
+def store_results(MetricsTrain, MetricsValidate, query_id, execution_time, save_path):
+    data_to_store = {
+        "train_loss": [MetricsTrain.loss_global],
+        "train_dice": [MetricsTrain.dice_global],
+        "train_pixel_accuracy": [MetricsTrain.pixel_acc_global],
+        "train_IOU": [MetricsTrain.IOU_score_global],
+        "train_NLL": [MetricsTrain.NLL_global],
+        "train_ECE": [MetricsTrain.ECE_global],
+        "train_MCE": [MetricsTrain.MCE_global],
+        "train_brier": [MetricsTrain.brier_global],
+        "train_soft_dice": [MetricsTrain.soft_dice_global],
+        "val_loss": [MetricsValidate.loss_global],
+        "val_dice": [MetricsValidate.dice_global],
+        "val_pixel_accuracy": [MetricsValidate.pixel_acc_global],
+        "val_IOU": [MetricsValidate.IOU_score_global],
+        "val_NLL": [MetricsValidate.NLL_global],
+        "val_ECE": [MetricsValidate.ECE_global],
+        "val_MCE": [MetricsValidate.MCE_global],
+        "val_brier": [MetricsValidate.brier_global],
+        "val_soft_dice": [MetricsValidate.soft_dice_global],
+        "Query ID": (query_id),
+        "Execution Time": execution_time,  # Measured in seconds
+    }
+    arrayify_results(data_to_store, save_path=save_path)
+
+
+def active_train(
     batch_size=4,
+    learning_rate=0.001,
+    epochs=100,
+    momentum=0.9,
+    beta0=0.5,
+    train_size=0.99,
+    dataset="PhC-C2DH-U373",
+    device="cpu",
     validation_size=0.33,
     binary=True,
-    iter=10,
-    experiment_name=None,
-    job_type=None,
     enable_dropout=False,
     dropout_prob=0.5,
     enable_pool_dropout=False,
     pool_dropout_prob=0.5,
     bilinear_method=False,
-    model_method=None,
+    model_method="PoolDropout",
     seed=261,
-    beta0=0.9,
-    turn_off_wandb=True,
+    torch_seed=17,
+    first_train=True,
+    train_loader=None,
+    val_loader=None,
+    unlabeled_loader=None,
+    train_idx=None,
+    val_idx=None,
+    unlabeled_pool_idx=None,
+    query_id=None,
+    AcquisitionFunction=None,
 ):
-    parser = argparse.ArgumentParser(description="Training arguments")
-    parser.add_argument("--model_method", default=model_method)
-    parser.add_argument("--iter", default=iter)
-    parser.add_argument("--lr", default=lr)  #
-    parser.add_argument("--device", default=device)  #
-    parser.add_argument("--batch_size", default=batch_size)  #
-    parser.add_argument("--epochs", default=epochs)  #
-    parser.add_argument("--momentum", default=momentum)  #
-    parser.add_argument("--train_size", default=train_size)  #
-    parser.add_argument("--validation_size", default=validation_size)  #
-    parser.add_argument("--dataset", default=dataset)  #
-    parser.add_argument("--binary", default=binary)  #
-    parser.add_argument("--beta0", default=beta0)  #
-    args = parser.parse_args()
-    print(args)
-    torch.manual_seed(
-        17
-    )  # seed used for weight initialization, this should be stochastic when using deep ensemble
-    # init weights & biases
-    if not turn_off_wandb:
-        if experiment_name and job_type:
-            run_tracker = wandb.init(
-                entity="andr_dl_projects",
-                reinit=False,
-                project="Active Bayesian Deep Learning For Image Segmentation",
-                resume="allow",
-                group=experiment_name,
-                job_type=job_type,
-                anonymous="allow",
-            )
-        else:
-            run_tracker = wandb.init(
-                entity="andr_dl_projects",
-                reinit=False,
-                project="Active Bayesian Deep Learning For Image Segmentation",
-                resume="allow",
-            )
 
-    n_classes = (
-        1 if args.binary else Config.n_classes[args.dataset]
-    )  # out channels to use for U-Net
-    DEVICE = args.device  # Device to use
-    save_ = False  # boolean, set to True when last epoch reached for saving image predictions
+    torch.manual_seed(torch_seed)
 
     # Load training and validation data
-    train_loader, val_loader = train_split(
-        train_size=args.train_size,
-        dataset=args.dataset,
-        batch_size=args.batch_size,
-        to_binary=args.binary,
-        num_workers=0,
-        seed=seed,
-    )
+    if first_train:
+        (
+            train_loader,
+            val_loader,
+            unlabeled_loader,
+            train_idx,
+            val_idx,
+            unlabeled_pool_idx,
+        ) = train_split(
+            train_size=train_size,
+            dataset=dataset,
+            batch_size=batch_size,
+            to_binary=binary,
+            num_workers=0,
+            seed=seed,
+        )
+    else:
+        (
+            train_loader,
+            val_loader,
+            unlabeled_loader,
+            train_idx,
+            val_idx,
+            unlabeled_pool_idx,
+        ) = data_from_index(
+            dataset,
+            batch_size,
+            binary,
+            train_idx,
+            val_idx,
+            unlabeled_pool_idx,
+            num_workers=0,
+            seed=seed,
+        )
 
-    in_ch = 1 if args.dataset != "warwick" else 3
+    n_classes = 1 if binary else Config.n_classes[dataset]  # out channels to use for U-Net
+    DEVICE = device  # Device to use
+    in_ch = 1 if dataset != "warwick" else 3
 
     start = time.time()
     # Get model and intilize weights
@@ -116,349 +270,389 @@ def train(
         in_ch=in_ch,
         out_ch=n_classes,
         bilinear_method=bilinear_method,
-        momentum=args.momentum,
+        momentum=momentum,
         enable_dropout=enable_dropout,
         dropout_prob=dropout_prob,
         enable_pool_dropout=enable_pool_dropout,
         pool_dropout_prob=pool_dropout_prob,
     )
     model.apply(init_weights)
-    model.to(args.device)
+    model.to(device)
+    if first_train:
+        init_params(
+            momentum=momentum,
+            in_ch=in_ch,
+            out_ch=n_classes,
+            bilinear_method=bilinear_method,
+            enable_dropout=enable_dropout,
+            dropout_prob=dropout_prob,
+            enable_pool_dropout=enable_pool_dropout,
+            pool_dropout_prob=pool_dropout_prob,
+        )
 
     # Intilize criterion and optimizer
     loss_fn = (
         nn.BCEWithLogitsLoss().to(DEVICE) if model.out_ch == 1 else nn.CrossEntropyLoss().to(DEVICE)
     )
-    optimizer = optim.Adam(model.parameters(), lr=lr, betas=(args.beta0, 0.999))
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=(beta0, 0.999))
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, "min", patience=5, factor=0.1, threshold=0.001
     )
 
-    # Define metrics that will be used
-    dice = (
-        BinaryF1Score().to(args.device)
-        if model.out_ch == 1
-        else Dice(average="micro", ignore_index=0).to(DEVICE)
-    )
-    pixel_acc = (
-        MulticlassAccuracy(num_classes=model.out_ch, validate_args=True).to(args.device)
-        if model.out_ch > 1
-        else BinaryAccuracy(validate_args=True).to(args.device)
-    )
-    IOU_score = BinaryJaccardIndex().to(args.device)
-    metrics = SegmentationMetrics()
-    calibration_metrics = Calibration_Scoring_Metrics(
-        nbins=15, multiclass=False, device=args.device
-    )
-    torch_ECE = BinaryCalibrationError(n_bins=15, norm="l1").to(args.device)
-    torch_MCE = BinaryCalibrationError(n_bins=15, norm="max").to(args.device)
-
-    # define arrays for global storage
-    train_dice_global = []
-    train_pixel_acc_global = []
-    train_IOU_score_global = []
-    train_loss_global = []
-    train_NLL = []
-    train_ECE = []
-    train_MCE = []
-    train_brier = []
-    train_soft_dice = []
-
-    val_dice_global = []
-    val_pixel_acc_global = []
-    val_IOU_score_global = []
-    val_loss_global = []
-    val_NLL = []
-    val_ECE = []
-    val_MCE = []
-    val_brier = []
-    validation_soft_dice = []
-
-    # Training loop
-    for epoch in range(args.epochs):
-        print(epoch)
-        # model.train()  # Put model in train mode
-
-        # Define arrays to store metrics
-        dice_vec = []
-        train_loss = []
-        pixel_acc_metric = []
-        iou_metric = []
-        dice_vec_own = []
-        dice_vec_own_confuse = []
-        train_soft_dice = []
-        train_IOU_own = []
-        train_NLL_local = []
-        train_ECE_local = []
-        train_MCE_local = []
-        train_brier_local = []
-
-        train_loop = tqdm(train_loader)  # Progress bar for the training data
-        print("Model In Train", model.training)
+    MetricsTrain = CollectMetrics(device=device, out_ch=model.out_ch)
+    MetricsValidate = CollectMetrics(device=device, out_ch=model.out_ch)
+    # Now train loop
+    for epoch in range(epochs):
+        train_loop = tqdm(train_loader, leave=False)  # Progress bar for the training data
         for batch_number, batch in enumerate(train_loop):
             images, masks, idx = batch
-            images = images.unsqueeze(1) if args.dataset != "warwick" else images
+            images = images.unsqueeze(1) if dataset != "warwick" else images
             images = images.to(device=DEVICE, dtype=torch.float32)
             masks = masks.type(torch.LongTensor)
             if model.out_ch > 1:
                 masks = masks.squeeze(1)
             masks = masks.to(DEVICE)
-
             # get predictions
             optimizer.zero_grad()
             predictions = model(images)
-
-            # Save dice score
-            dice_vec.append(dice(predictions.squeeze(1), masks.type(torch.float32)).item())
-            dice_vec_own.append(
-                metrics.Dice_Coef(predictions.squeeze(1), masks.type(torch.float32)).item()
-            )
-            dice_vec_own_confuse.append(
-                metrics.Dice_Coef_Confusion(
-                    predictions.squeeze(1), masks.type(torch.float32)
-                ).item()
-            )
-
-            train_soft_dice.append(metrics.torch_their_dice(predictions, masks).item())
-            train_IOU_own.append(
-                metrics.IOU_(predictions.squeeze(1), masks.type(torch.float32)).item()
-            )
-
             loss = loss_fn(predictions.squeeze(1), masks.float())  # Calculate loss
-            pixel_acc_metric.append(pixel_acc(predictions.squeeze(1), masks).item())
-            iou_metric.append(IOU_score(predictions.squeeze(1), masks).item())
-            train_loss.append(loss.item())
-            calib_metrics = calibration_metrics.metrics(predictions, masks)
-            train_NLL_local += calib_metrics["NLL"]
-            try:
-                train_ECE_local.append(
-                    torch_ECE(predictions.squeeze(1), masks).item()
-                )  # calib_metrics['ECE']
-                train_MCE_local.append(
-                    torch_MCE(predictions.squeeze(1), masks).item()
-                )  # calib_metrics['MCE']
-            except:
-                train_ECE_local.append(0)
-                train_MCE_local.append(0)
-            train_brier_local += calib_metrics["brier_score"]
 
-            # backpropagation
+            # Collect metrics
+            out_loss, out_Dice = MetricsTrain.GetMetrics(predictions, masks, loss)
             loss.backward()
             optimizer.step()
+            train_loop.set_postfix({"loss": out_loss, "train_dice": out_Dice})
+            MetricsTrain.AppendToGlobal()
 
-            # For the first batch in each epoch, some image predictions are logged to wandb
-            if not turn_off_wandb:
-                if batch_number == 0:
-                    if (epoch + 1) == args.epochs:
-                        save_ = True
-                    fig = plot_prediction_batch(
-                        images, masks, predictions, save_=save_, dataset=args.dataset
-                    )
-                    wandb.log({"Training Predictions": fig})
-                    if save_:
-                        wandb.log(
-                            {"Final High Resolution Training Example": wandb.Image("pred.png")}
-                        )
-                        os.remove("pred.png")
+        if epoch > -1:  # epoch%10==0:
+            val_loop = tqdm(val_loader, leave=False)
+            with torch.no_grad():
+                model.eval()
+                for batch_number, batch in enumerate(val_loop):
+                    images, masks, idx = batch
+                    images = images.unsqueeze(1) if dataset != "warwick" else images
+                    images = images.to(device=DEVICE, dtype=torch.float32)
+                    masks = masks.type(torch.LongTensor)
+                    if model.out_ch > 1:
+                        masks = masks.squeeze(1)
+                    masks = masks.to(DEVICE)
+                    # get predictions
+                    predictions = model(images)
+                    loss = loss_fn(predictions.squeeze(1), masks.float())  # Calculate loss
 
-            # update tqdm loop
-            train_loop.set_postfix({"loss": loss.item(), "train_dice": dice_vec[-1]})
+                    # Collect metrics
+                    out_loss, out_Dice = MetricsValidate.GetMetrics(predictions, masks, loss)
+                    val_loop.set_postfix({"loss": out_loss, "val_dice": out_Dice})
+                    MetricsValidate.AppendToGlobal()
 
-        # Log metrics to wandb
-        # TO DO: Other Metrics, ECE ??
-        if not turn_off_wandb:
-            wandb.log({"Train loss (epoch):": torch.tensor(train_loss).mean()})
-            wandb.log({"Train dice (epoch):": torch.tensor(dice_vec).mean()})
-            wandb.log({"Train pixel accuracy (epoch):": torch.tensor(pixel_acc_metric).mean()})
-            wandb.log({"Train IOU (epoch):": torch.tensor(iou_metric).mean()})
-            wandb.log({"Train dice own:": torch.tensor(dice_vec_own).mean()})
-            wandb.log({"Train dice confuse:": torch.tensor(dice_vec_own_confuse).mean()})
-            wandb.log({"Train soft dice": torch.tensor(train_soft_dice).mean()})
-            wandb.log({"Train IOU own": torch.tensor(train_IOU_own).mean()})
-            wandb.log({"Train ECE": torch.tensor(train_ECE_local).mean()})
-            wandb.log({"Train MCE": torch.tensor(train_MCE_local).mean()})
-            wandb.log({"Train Brier": torch.tensor(train_brier_local).mean()})
-
-        # Store to global for each epoch
-        train_dice_global.append(torch.tensor(dice_vec).mean().item())
-        train_pixel_acc_global.append(torch.tensor(pixel_acc_metric).mean().item())
-        train_IOU_score_global.append(torch.tensor(iou_metric).mean().item())
-        train_loss_global.append(torch.tensor(train_loss).mean().item())
-        train_NLL.append(torch.tensor(train_NLL_local).mean().item())
-        train_ECE.append(torch.tensor(train_ECE_local).mean().item())
-        train_MCE.append(torch.tensor(train_MCE_local).mean().item())
-        train_brier.append(torch.tensor(train_brier_local).mean().item())
-        train_soft_dice.append(torch.tensor(train_soft_dice).mean())
-
-        # Create arrays to store metrics
-        val_dice_vec = []  #
-        val_dice_vec_own = []  #
-        val_dice_vec_own_confuse = []  #
-        val_loss = []  #
-        val_iou_metric = []  #
-        val_accuracy = []  #
-        val_soft_dice = []  #
-        baseline = []
-        val_IOU_own = []
-        val_NLL_local = []
-        val_ECE_local = []
-        val_MCE_local = []
-        val_brier_local = []
-
-        # define progress bar for validation lopp
-        val_loop = tqdm(val_loader)
-
-        with torch.no_grad():
-            model.eval()
-            print("Model In Train", model.training)
-            for batch_number, batch in enumerate(val_loop):
-                images, masks, idx = batch
-                images = images.unsqueeze(1) if args.dataset != "warwick" else images
-                images = images.to(device=DEVICE, dtype=torch.float32)
-                masks = masks.type(torch.LongTensor)
-                if model.out_ch > 1:
-                    masks = masks.squeeze(1)
-                masks = masks.to(device)
-
-                predictions = model(images)  # .to(device)
-
-                # Save dice score
-                val_dice_vec.append(dice(predictions.squeeze(1), masks.type(torch.float32)).item())
-                val_dice_vec_own.append(
-                    metrics.Dice_Coef(predictions.squeeze(1), masks.type(torch.float32)).item()
-                )
-                val_dice_vec_own_confuse.append(
-                    metrics.Dice_Coef_Confusion(
-                        predictions.squeeze(1), masks.type(torch.float32)
-                    ).item()
-                )
-                val_soft_dice.append(metrics.torch_their_dice(predictions, masks).item())
-                val_IOU_own.append(
-                    metrics.IOU_(predictions.squeeze(1), masks.type(torch.float32)).item()
-                )
-
-                loss = loss_fn(predictions.squeeze(1), masks.float())  # Calculate loss
-                val_accuracy.append(pixel_acc(predictions.squeeze(1), masks).item())
-                val_iou_metric.append(IOU_score(predictions.squeeze(1), masks).item())
-                val_loss.append(loss.item())
-
-                calib_metrics = calibration_metrics.metrics(predictions, masks)
-                val_NLL_local += calib_metrics["NLL"]
-                try:
-                    val_ECE_local.append(
-                        torch_ECE(predictions.squeeze(1), masks).item()
-                    )  # calib_metrics['ECE']
-                    val_MCE_local.append(
-                        torch_MCE(predictions.squeeze(1), masks).item()
-                    )  # calib_metrics['MCE']
-                except:
-                    val_ECE_local.append(0)
-                    val_MCE_local.append(0)
-                val_brier_local += calib_metrics["brier_score"]
-
-                val_loop.set_postfix(**{"loss (batch)": loss.item(), "val_dice": val_dice_vec[-1]})
-                baseline.append(
-                    torch.max(masks.sum() / masks.numel(), 1 - masks.sum() / masks.numel()).item()
-                )
-
-                if not turn_off_wandb:
-                    if batch_number == 0:
-                        fig = plot_prediction_batch(images, masks, predictions, save_=save_)
-                        wandb.log({"Validation Predictions": fig})
-                        if save_:
-                            wandb.log(
-                                {
-                                    "Final High Resolution Validation Example": wandb.Image(
-                                        "pred.png"
-                                    )
-                                }
-                            )
-                            os.remove("pred.png")
-
-        val_soft_dice = torch.tensor(val_soft_dice).mean().item()
-        val_dice_vec_own = torch.tensor(val_dice_vec_own).mean().item()
-        val_dice_vec_own_confuse = torch.tensor(val_dice_vec_own_confuse).mean().item()
-        baseline = torch.tensor(baseline).mean().item()
-        val_dice = torch.tensor(val_dice_vec).mean().item()
-
-        val_iou = torch.tensor(val_iou_metric).mean().item()
-        val_loss = torch.tensor(val_loss).mean().item()
-        val_accuracy = torch.tensor(val_accuracy).mean().item()
-        val_IOU_own = torch.tensor(val_IOU_own).mean().item()
-
-        val_NLL_local = torch.tensor(val_NLL_local).mean().item()
-        val_ECE_local = torch.tensor(val_ECE_local).mean().item()
-        val_MCE_local = torch.tensor(val_MCE_local).mean().item()
-        val_brier_local = torch.tensor(val_brier_local).mean().item()
-
-        if not turn_off_wandb:
-            wandb.log({"Validation soft dice (epoch):": val_soft_dice})
-            wandb.log({"Validation acc baseline (epoch):": baseline})
-            wandb.log({"Validation loss (epoch):": val_loss})
-            wandb.log({"Validation dice (epoch):": val_dice})
-            wandb.log({"Validation pixel accuracy (epoch):": val_accuracy})
-            wandb.log({"Validation IOU (epoch):": val_iou})
-            wandb.log({"Validation dice own (epoch):": val_dice_vec_own})
-            wandb.log({"Validation dice own confuse (epoch):": val_dice_vec_own_confuse})
-            wandb.log({"Validation IOU own (epoch):": val_IOU_own})
-            wandb.log({"Validation ECE": val_ECE_local})
-            wandb.log({"Validation MCE": val_MCE_local})
-            wandb.log({"Validation Brier": val_brier_local})
-
-        # Store to global for each epoch
-        val_dice_global.append(val_dice)
-        val_pixel_acc_global.append(val_accuracy)
-        val_IOU_score_global.append(val_iou)
-        val_loss_global.append(val_loss)
-        val_NLL.append(val_NLL_local)
-        val_ECE.append(val_ECE_local)
-        val_MCE.append(val_MCE_local)
-        val_brier.append(val_brier_local)
-        validation_soft_dice.append(val_soft_dice)
-        scheduler.step(val_loss)
-
-        # Put model in train mode
         model.train()
-
-    # store the metrics in one array
-    # Train: loss | dice | pixel | iou | NLL | ECE | MCE | Brier | Soft Dice
-    # Val: loss | dice | pixel | iou   | NLL | ECE | MCE | Brier | Soft Dice
-    # Other: datasize (train size) | method (batchmorm baseline, dropout, dropout pool, both dropout and pool dropout)  | Experiment number | Execution Time
-    # Total Columns: 9+9+4=22
     end = time.time()
     execution_time = end - start
-    data_to_store = {
-        "train_loss": [train_loss_global],
-        "train_dice": [train_dice_global],
-        "train_pixel_accuracy": [train_pixel_acc_global],
-        "train_IOU": [train_IOU_score_global],
-        "train_NLL": [train_NLL],
-        "train_ECE": [train_ECE],
-        "train_MCE": [train_MCE],
-        "train_brier": [train_brier],
-        "train_soft_dice": [train_soft_dice],
-        "val_loss": [val_loss_global],
-        "val_dice": [val_dice_global],
-        "val_pixel_accuracy": [val_pixel_acc_global],
-        "val_IOU": [val_IOU_score_global],
-        "val_NLL": [val_NLL],
-        "val_ECE": [val_ECE],
-        "val_MCE": [val_MCE],
-        "val_brier": [val_brier],
-        "val_soft_dice": [validation_soft_dice],
-        "train_size": args.train_size,
-        "method": args.model_method,
-        "Experiment Number": (args.iter + 1),
-        "Execution Time": execution_time,  # Measured in seconds
-    }
-
-    if not turn_off_wandb:
-        tmp_df = arrayify_results(data_to_store, "results/tmp")
-        tmp_df.to_json(os.path.join(wandb.run.dir, "tmp.json"))
-        wandb.finish()
-        os.remove("results/tmp.json")
-    return data_to_store
+    store_results(
+        MetricsTrain,
+        MetricsValidate,
+        query_id,
+        execution_time,
+        f"results/active_learning/train_val_{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{torch_seed}",
+    )
+    torch.save(model.state_dict(), f"models/{dataset}_{model_method}_{seed}_{torch_seed}.pth")
+    # train and validate
+    return (train_loader, val_loader, unlabeled_loader, train_idx, val_idx, unlabeled_pool_idx)
 
 
-if __name__ == "__main__":
-    train()
+def process(input, first_run, file_path):
+    file_exists = os.path.isfile(f"results/active_learning/test.json")
+    if first_run:
+        if not file_exists:
+            df = pd.DataFrame(
+                {"Train Round": input["epoch"], "Mu": input["mu"], "idx": input["idx"]}
+            )
+            df.to_json("results/active_learning/test.json")
+        else:
+            df = pd.read_json("results/active_learning/test.json")
+            df_new = pd.DataFrame(
+                {"Train Round": input["epoch"], "Mu": input["mu"], "idx": input["idx"]}
+            )
+            df_out = pd.concat([df, df_new], ignore_index=True)
+            df_out.to_json("results/active_learning/test.json")
+    else:
+        df = pd.read_json(f"results/active_learning/test.json")
+        df_new = pd.DataFrame(
+            {"Train Round": input["epoch"], "Mu": input["mu"], "idx": input["idx"]}
+        )
+        df_out = pd.concat([df, df_new], ignore_index=True)
+        df_out.to_json("results/active_learning/test.json")
+
+
+def enable_MCDropout(model):
+    """Function to enable the dropout layers during test-time"""
+    for m in model.modules():
+        if m.__class__.__name__.startswith("Dropout"):
+            m.train()
+
+
+def binarize(predictions):
+    if len(predictions.shape) == 4:
+        return torch.cat([predictions, 1 - predictions], dim=3)
+    elif len(predictions.shape) == 5:
+        return torch.cat([predictions, 1 - predictions], dim=4)
+
+
+def unbinarize(predictions):
+    return predictions[:, :, :, :, 0].unsqueeze(4)
+
+
+def find_next(
+    models: list,
+    model_method=None,
+    first_train=True,
+    train_loader=None,
+    val_loader=None,
+    unlabeled_loader=None,
+    train_idx=None,
+    val_idx=None,
+    unlabeled_pool_idx=None,
+    momentum=None,
+    enable_dropout=False,
+    dropout_prob=0.5,
+    enable_pool_dropout=False,
+    pool_dropout_prob=0.5,
+    bilinear_method=False,
+    dataset=None,
+    binary=None,
+    device=None,
+    AcquisitionFunction=None,
+    torch_seed=None,
+):
+
+    np.random.seed(torch_seed)
+    Acq_Func = ActiveLearningAcquisitions()
+
+    if AcquisitionFunction == "Random":
+        next_labels = Acq_Func.ApplyAcquisition(unlabeled_pool_idx, method=AcquisitionFunction, n=2)
+        return next_labels
+
+    n_classes = 1 if binary else Config.n_classes[dataset]  # out channels to use for U-Net
+    DEVICE = device  # Device to use
+    in_ch = 1 if dataset != "warwick" else 3
+    loss_fn = (
+        nn.BCEWithLogitsLoss().to(DEVICE) if n_classes == 1 else nn.CrossEntropyLoss().to(DEVICE)
+    )
+
+    # Get model and intilize weights
+    model = UNET(
+        in_ch=in_ch,
+        out_ch=n_classes,
+        bilinear_method=bilinear_method,
+        momentum=momentum,
+        enable_dropout=enable_dropout,
+        dropout_prob=dropout_prob,
+        enable_pool_dropout=enable_pool_dropout,
+        pool_dropout_prob=pool_dropout_prob,
+    )
+    # Create shapes here based on sizes above
+    for model_path in models:
+        model.load_state_dict(torch.load(model_path))
+        model.to(device)
+        Unlabeled_loop = tqdm(unlabeled_loader)  # unlabelled pool
+        if model_method == "MCD":
+            with torch.no_grad():
+                model.eval()
+                model.apply(enable_MCDropout)
+                for batch_number, batch in enumerate(Unlabeled_loop):
+                    images, masks, idx = batch
+                    images = images.unsqueeze(1) if dataset != "warwick" else images
+                    images = images.to(device=DEVICE, dtype=torch.float32)
+                    # get predictions
+                    predictions = torch.stack(
+                        [
+                            binarize(torch.sigmoid(model(images).permute(0, 2, 3, 1)))
+                            for x in range(50)
+                        ],
+                        dim=1,
+                    )
+                    if batch_number == 0:
+                        prediction_tensor = predictions
+                        prediction_idx = idx.clone().detach()
+                    else:
+                        prediction_tensor = torch.vstack((prediction_tensor, predictions))
+                        prediction_idx = torch.cat([prediction_idx, idx.clone().detach()])
+
+    scores = Acq_Func.ApplyAcquisition(prediction_tensor, method=AcquisitionFunction)
+    if len(unlabeled_pool_idx) < 2:
+        top_values, top_indicies = torch.topk(scores, k=1)
+    else:
+        top_values, top_indicies = torch.topk(scores, k=2)
+    return top_indicies.tolist()
+
+
+def how_many_iters(dataset):
+    total_images = [x for x in os.listdir(f"data/raw/{dataset}/image") if x != ".DS_Store"]
+    validation_images = math.ceil(len(total_images) * 0.33)
+    training_unlabeled_images = len(total_images) - validation_images
+    train_size = training_unlabeled_images * 0.01
+    if (training_unlabeled_images * 0.01) < 1.0:
+        train_size = 1
+    unlabeled_pool_size = training_unlabeled_images - train_size
+    out = math.ceil(unlabeled_pool_size / 2)
+    return out
+
+
+def run_active(
+    batch_size=4,
+    learning_rate=0.001,
+    epochs=3,
+    momentum=0.9,
+    beta0=0.9,
+    train_size=0.01,
+    dataset="PhC-C2DH-U373",
+    device="cpu",
+    validation_size=0.33,
+    binary=True,
+    enable_dropout=False,
+    dropout_prob=0.5,
+    enable_pool_dropout=True,
+    pool_dropout_prob=0.5,
+    bilinear_method=False,
+    model_method="MCD",
+    seed=261,
+    torch_seeds=[17],
+    first_train=True,
+    AcquisitionFunction="BALD",  # [Random,ShanonEntropy,BALD]
+    train_loader=None,
+    val_loader=None,
+    unlabeled_loader=None,
+    train_idx=None,
+    val_idx=None,
+    unlabeled_pool_idx=None,
+):
+    print(f"Running on device {device}")
+    models_list = [
+        f"models/{dataset}_{model_method}_{seed}_{torch_seed}.pth" for torch_seed in torch_seeds
+    ]
+    # loop_length = how_many_iters(dataset)
+
+    active_df = pd.DataFrame(
+        {"Query_id": [], "labels_added": [], "Train_size": [], "Unlabeled_size": []}, dtype=object
+    )
+    for torch_seed in torch_seeds:
+        for i in tqdm(range(52)):
+            (
+                train_loader,
+                val_loader,
+                unlabeled_loader,
+                train_idx,
+                val_idx,
+                unlabeled_pool_idx,
+            ) = active_train(
+                batch_size=batch_size,
+                learning_rate=learning_rate,
+                epochs=epochs,
+                momentum=momentum,
+                beta0=beta0,
+                train_size=train_size,
+                dataset=dataset,
+                device=device,
+                validation_size=validation_size,
+                binary=binary,
+                enable_dropout=enable_dropout,
+                dropout_prob=dropout_prob,
+                enable_pool_dropout=enable_pool_dropout,
+                pool_dropout_prob=pool_dropout_prob,
+                bilinear_method=bilinear_method,
+                model_method=model_method,
+                seed=seed,
+                torch_seed=torch_seed,
+                first_train=first_train,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                unlabeled_loader=unlabeled_loader,
+                train_idx=train_idx,
+                val_idx=val_idx,
+                unlabeled_pool_idx=unlabeled_pool_idx,
+                query_id=i,
+                AcquisitionFunction=AcquisitionFunction,
+            )
+
+            next_labels = find_next(
+                models=models_list,
+                model_method=model_method,
+                first_train=first_train,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                unlabeled_loader=unlabeled_loader,
+                train_idx=train_idx,
+                val_idx=val_idx,
+                unlabeled_pool_idx=unlabeled_pool_idx,
+                momentum=momentum,
+                enable_dropout=enable_dropout,
+                dropout_prob=dropout_prob,
+                enable_pool_dropout=enable_pool_dropout,
+                pool_dropout_prob=pool_dropout_prob,
+                bilinear_method=bilinear_method,
+                dataset=dataset,
+                binary=binary,
+                device=device,
+                AcquisitionFunction=AcquisitionFunction,
+                torch_seed=torch_seed,
+            )
+            # Add labels to train pool
+            train_idx += next_labels
+            # Remove labels from unlabeled pool
+            [unlabeled_pool_idx.remove(x) for x in next_labels]
+            first_train = False
+            print(f"Adding {','.join(map(str,next_labels))} to the training pool.")
+            print(
+                f"Size of training set {len(train_idx)}, Size of unlabeled pool {len(unlabeled_pool_idx)}"
+            )
+            active_df.loc[len(active_df)] = [
+                i + 1,
+                np.array(next_labels, dtype=object),
+                len(train_idx),
+                len(unlabeled_pool_idx),
+            ]
+            print(active_df)
+        # Final Train on the last data
+        (
+            train_loader,
+            val_loader,
+            unlabeled_loader,
+            train_idx,
+            val_idx,
+            unlabeled_pool_idx,
+        ) = active_train(
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            epochs=epochs,
+            momentum=momentum,
+            beta0=beta0,
+            train_size=train_size,
+            dataset=dataset,
+            device=device,
+            validation_size=validation_size,
+            binary=binary,
+            enable_dropout=enable_dropout,
+            dropout_prob=dropout_prob,
+            enable_pool_dropout=enable_pool_dropout,
+            pool_dropout_prob=pool_dropout_prob,
+            bilinear_method=bilinear_method,
+            model_method=model_method,
+            seed=seed,
+            torch_seed=torch_seed,
+            first_train=first_train,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            unlabeled_loader=unlabeled_loader,
+            train_idx=train_idx,
+            val_idx=val_idx,
+            unlabeled_pool_idx=unlabeled_pool_idx,
+            query_id=i + 1,
+            AcquisitionFunction=AcquisitionFunction,
+        )
+        active_df.to_json(
+            f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{torch_seed}.json"
+        )
+
+
+# if __name__ == "__main__":
+#     run_active()

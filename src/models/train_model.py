@@ -51,7 +51,7 @@ def train(
     bilinear_method=False,
     model_method=None,
     seed=261,
-    beta0=0.9,
+    beta0=0.5,
     turn_off_wandb=True,
 ):
     parser = argparse.ArgumentParser(description="Training arguments")
@@ -99,7 +99,7 @@ def train(
     save_ = False  # boolean, set to True when last epoch reached for saving image predictions
 
     # Load training and validation data
-    train_loader, val_loader = train_split(
+    train_loader, val_loader, _, _, _, _ = train_split(
         train_size=args.train_size,
         dataset=args.dataset,
         batch_size=args.batch_size,
@@ -176,7 +176,6 @@ def train(
 
     # Training loop
     for epoch in range(args.epochs):
-        print(epoch)
         # model.train()  # Put model in train mode
 
         # Define arrays to store metrics
@@ -194,7 +193,6 @@ def train(
         train_brier_local = []
 
         train_loop = tqdm(train_loader)  # Progress bar for the training data
-        print("Model In Train", model.training)
         for batch_number, batch in enumerate(train_loop):
             images, masks, idx = batch
             images = images.unsqueeze(1) if args.dataset != "warwick" else images
@@ -310,7 +308,6 @@ def train(
 
         with torch.no_grad():
             model.eval()
-            print("Model In Train", model.training)
             for batch_number, batch in enumerate(val_loop):
                 images, masks, idx = batch
                 images = images.unsqueeze(1) if args.dataset != "warwick" else images
