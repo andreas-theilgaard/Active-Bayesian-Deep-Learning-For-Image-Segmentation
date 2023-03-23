@@ -33,7 +33,7 @@ def active_run(seeds, model_method, AcquisitionFunctions, dataset):
                     epochs=1,
                     momentum=0.9,
                     beta0=0.9,
-                    train_size=0.01,
+                    train_size=0.95,
                     dataset=dataset,
                     device=find_best_device(),
                     validation_size=0.33,

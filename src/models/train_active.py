@@ -483,7 +483,8 @@ def find_next(
         top_values, top_indicies = torch.topk(scores, k=1)
     else:
         top_values, top_indicies = torch.topk(scores, k=2)
-    return top_indicies.tolist()
+    next_labels = prediction_idx[top_indicies]
+    return next_labels.tolist()
 
 
 def how_many_iters(dataset):
@@ -536,7 +537,7 @@ def run_active(
         {"Query_id": [], "labels_added": [], "Train_size": [], "Unlabeled_size": []}, dtype=object
     )
     for torch_seed in torch_seeds:
-        for i in tqdm(range(52)):
+        for i in tqdm(range(3)):
             (
                 train_loader,
                 val_loader,
