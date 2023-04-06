@@ -20,6 +20,9 @@ Create virtual environment containing the packages used for this project by the 
 conda env create -f environment.yml
 ```
 
+<details>
+<summary> Adding A New Dataset</summary>
+
 ## Adding A New Dataset
 In order to add a new dataset and run the experiments with this dataset do the following:
 1. Add the data to the ```data/raw/``` folder with the name of dataset as the folder name and using the same structure as showed below.
@@ -55,7 +58,15 @@ make colors
 ```
 4. You can now execute the experiments described in ?? using your own dataset by passing "your_dataset_name" to the ```dataset``` flag. If you are interested in binary segmentation, you can enable it by setting the binary flag to true. This will divide the mask into two categories: the background (labeled 0) and everything else (labeled 1).
 
+</details>
+
+
+<details>
+<summary>
 Project Organization
+</summary>
+
+## Project Organization
 ------------
 
     ├── LICENSE
@@ -105,3 +116,5 @@ Project Organization
 
 
 --------
+
+</details>
