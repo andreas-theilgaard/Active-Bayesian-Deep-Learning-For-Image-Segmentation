@@ -12,12 +12,12 @@ Project Under Development
 - [Project Setup](#Project-Setup)
 
 
+# Project Setup
 <details>
 <summary>
 Project Setup
 </summary>
 
-# Project Setup
 #### Clone repository
 ```
 clone https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation.git
