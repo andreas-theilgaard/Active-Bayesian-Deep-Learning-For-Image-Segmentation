@@ -9,8 +9,7 @@ Active Bayesian Deep Learning For Image Segmentation
 Project Under Development
 
 # Contents
-- [Contents](#Project Setup)
-- [Papers](#Adding A New Dataset)
+- [Project Setup](#Project-Setup)
 
 
 <details>
