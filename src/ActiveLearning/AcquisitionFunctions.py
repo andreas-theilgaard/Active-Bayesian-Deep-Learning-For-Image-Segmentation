@@ -66,6 +66,39 @@ class ActiveLearningAcquisitions:
         JSD_values = (0.5 * (KL_PM + KL_QM)).mean(-1)
         return torch.tensor(JSD_values)
 
+    def Get_All_Pixel_Wise(self, predictions):
+        def entropy_pixel(predictions):
+            mean_predictions = torch.mean(predictions, dim=1)  # Find mean predictions
+            mean_predictions = mean_predictions.detach().cpu().numpy()
+            # np.apply_along_axis(entropy,axis=-1,arr=mean_predictions).sum(axis=(1,2))
+            return torch.tensor(-xlogy(mean_predictions, mean_predictions).sum(axis=(3)))
+
+        def bald_pixel(predictions):  # mutual information
+            mean_predictions = predictions.mean(dim=1)
+            mean_predictions = mean_predictions.detach().cpu().numpy()
+            predictions = predictions.detach().cpu().numpy()
+
+            entropy_expected_preds = -xlogy(mean_predictions, mean_predictions).sum(axis=(3))
+            expected_entropy = -np.mean(xlogy(predictions, predictions).sum(axis=(4)), axis=1)
+            return torch.tensor(entropy_expected_preds - expected_entropy)
+
+        def JSD_pixel(predictions):
+            predictions = predictions.numpy()
+            consenus_prob = np.mean(predictions, axis=1)
+            consenus_prob = np.repeat(consenus_prob, repeats=predictions.shape[1], axis=0).reshape(
+                predictions.shape
+            )
+            M = 0.5 * (predictions + consenus_prob)
+            KL_PM = entropy(predictions, M, axis=-1)
+            KL_QM = entropy(consenus_prob, M, axis=-1)
+            JSD_values = (0.5 * (KL_PM + KL_QM)).mean(1)
+            return torch.tensor(JSD_values)
+
+        Entropy = entropy_pixel(predictions)
+        BALD = bald_pixel(predictions)
+        JSD = JSD_pixel(predictions)
+        return (Entropy, BALD, JSD)
+
     def KLDivergence(self):
         pass
 

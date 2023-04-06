@@ -75,6 +75,8 @@ def test_accquisition_Entropy():
             ]
         )
         assert torch.isclose(Entropy, expected).sum() == len(expected)
+        Entropy_pixel, _, _ = AL_Acquisitions.Get_All_Pixel_Wise(predictions)
+        assert abs(torch.sum((Entropy_pixel.sum(dim=(1, 2)) - Entropy)).item()) < 0.0001
 
 
 def test_accquisition_BALD():
@@ -107,6 +109,8 @@ def test_accquisition_BALD():
             ]
         )
         assert torch.isclose(BALD, expected).sum() == len(expected)
+        _, BALD_pixel, _ = AL_Acquisitions.Get_All_Pixel_Wise(predictions)
+        assert abs(torch.sum((BALD_pixel.sum(dim=(1, 2)) - BALD)).item()) < 0.0001
 
 
 def test_accquisition_JSD():
@@ -145,3 +149,5 @@ def test_accquisition_JSD():
             ]
         )
         assert torch.isclose(JSD_values, expected).sum() == len(expected)
+        _, _, jsd_pixel = AL_Acquisitions.Get_All_Pixel_Wise(predictions)
+        assert abs(torch.sum((jsd_pixel.sum(dim=(1, 2)) - JSD_values)).item()) < 0.0001
