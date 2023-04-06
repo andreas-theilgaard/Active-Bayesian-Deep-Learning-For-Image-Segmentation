@@ -8,7 +8,14 @@ Active Bayesian Deep Learning For Image Segmentation
 
 Project Under Development
 
-## Project Setup
+# Contents
+- [Contents](#Project Setup)
+- [Papers](#Adding A New Dataset)
+
+
+<details>
+<summary> Project Setup <summary>
+# Project Setup
 #### Clone repository
 ```
 clone https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation.git
@@ -19,11 +26,12 @@ Create virtual environment containing the packages used for this project by the 
 ```
 conda env create -f environment.yml
 ```
+</details>
 
 <details>
 <summary> Adding A New Dataset</summary>
 
-## Adding A New Dataset
+# Adding A New Dataset
 In order to add a new dataset and run the experiments with this dataset do the following:
 1. Add the data to the ```data/raw/``` folder with the name of dataset as the folder name and using the same structure as showed below.
 
