@@ -15,6 +15,7 @@ Project Under Development
 
 <details>
 <summary> Project Setup <summary>
+
 # Project Setup
 #### Clone repository
 ```
