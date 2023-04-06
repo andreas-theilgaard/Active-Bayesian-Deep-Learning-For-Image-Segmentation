@@ -10,6 +10,8 @@ Project Under Development
 
 # Contents
 - [Project Setup](#Project-Setup)
+- [Adding A New Dataset](#adding-a-new-dataset)
+- [Project Organization](#project-organization)
 
 
 # Project Setup
@@ -30,10 +32,12 @@ conda env create -f environment.yml
 ```
 </details>
 
+
+# Adding A New Dataset
+
 <details>
 <summary> Adding A New Dataset</summary>
 
-# Adding A New Dataset
 In order to add a new dataset and run the experiments with this dataset do the following:
 1. Add the data to the ```data/raw/``` folder with the name of dataset as the folder name and using the same structure as showed below.
 
@@ -70,13 +74,13 @@ make colors
 
 </details>
 
+# Project Organization
 
 <details>
 <summary>
 Project Organization
 </summary>
 
-## Project Organization
 ------------
 
     ├── LICENSE
