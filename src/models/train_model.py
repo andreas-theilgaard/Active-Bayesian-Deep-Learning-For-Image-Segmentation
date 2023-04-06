@@ -32,9 +32,9 @@ import time
 
 
 def train(
-    dataset="PhC-C2DH-U373",
-    train_size=0.99,
-    epochs=100,
+    dataset="warwick",
+    train_size=0.61,
+    epochs=10,
     lr=0.001,
     momentum=0.9,
     device="cpu",
@@ -51,7 +51,7 @@ def train(
     bilinear_method=False,
     model_method=None,
     seed=261,
-    beta0=0.5,
+    beta0=0.9,
     turn_off_wandb=True,
 ):
     parser = argparse.ArgumentParser(description="Training arguments")
@@ -306,6 +306,11 @@ def train(
         # define progress bar for validation lopp
         val_loop = tqdm(val_loader)
 
+        ################## Delete
+        images_tensor = []
+        masks_tensor = []
+        predictions_tensor = []
+        ################# Delete
         with torch.no_grad():
             model.eval()
             for batch_number, batch in enumerate(val_loop):
@@ -371,6 +376,22 @@ def train(
                                 }
                             )
                             os.remove("pred.png")
+                ########## Delte
+                masks_tensor.append(masks)
+                predictions_tensor.append(predictions)
+                images_tensor.append(images)
+                ##########Delete
+
+        images_tensor = torch.vstack(images_tensor)
+        predictions_tensor = torch.vstack(predictions_tensor)
+        masks_tensor = torch.vstack(masks_tensor)
+        print(masks_tensor.shape)
+        print(predictions_tensor.shape)
+        print(images_tensor.shape)
+
+        torch.save(images_tensor, "test_assets/imagesNormalQ.pth")
+        torch.save(predictions_tensor, "test_assets/predictionsNormalQ.pth")
+        torch.save(masks_tensor, "test_assets/masksNormalQ.pth")
 
         val_soft_dice = torch.tensor(val_soft_dice).mean().item()
         val_dice_vec_own = torch.tensor(val_dice_vec_own).mean().item()

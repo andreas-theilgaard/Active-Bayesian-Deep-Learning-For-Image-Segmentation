@@ -5,6 +5,7 @@ from src.data.dataloader import train_split
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
+from torchmetrics.classification import BinaryF1Score
 
 
 def simulated_train_loop():
@@ -31,7 +32,7 @@ def simulated_train_loop():
         val_idx,
         unlabeled_pool_idx,
     ) = train_split(
-        train_size=0.01,
+        train_size=0.99,
         dataset=dataset,
         batch_size=4,
         to_binary=True,
@@ -43,10 +44,12 @@ def simulated_train_loop():
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, "min", patience=5, factor=0.1, threshold=0.001
     )
+    dice = BinaryF1Score()
 
     # Now train loop
-    for epoch in range(1):
+    for epoch in range(20):
         train_loop = tqdm(train_loader, leave=False)  # Progress bar for the training data
+        dice_vec = []
         for batch_number, batch in enumerate(train_loop):
             images, masks, idx = batch
             images = images.unsqueeze(1) if dataset != "warwick" else images
@@ -59,9 +62,11 @@ def simulated_train_loop():
             optimizer.zero_grad()
             predictions = model(images)
             loss = loss_fn(predictions.squeeze(1), masks.float())  # Calculate loss
+            dice_vec.append(dice(predictions.squeeze(1), masks.type(torch.float32)).item())
 
             loss.backward()
             optimizer.step()
+            train_loop.set_postfix({"loss": loss.item(), "train_dice": dice_vec[-1]})
     model.eval()
     eval_preds = model(images)
     print(eval_preds.shape)

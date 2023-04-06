@@ -101,7 +101,8 @@ class Calibration_Scoring_Metrics:
             return brier.detach().cpu().numpy().ravel()
         else:
             p = torch.sigmoid(y_hat)
-            brier = torch.mean(((p - y_true) ** 2).view(y_hat.shape[0], -1), dim=1, keepdim=True)
+            # brier = torch.mean(((p - y_true) ** 2).view(y_hat.shape[0], -1), dim=1, keepdim=True)
+            brier = torch.mean(((p - y_true) ** 2).reshape(y_hat.shape[0], -1), dim=1, keepdim=True)
             if not sample_wise:
                 brier = torch.mean(brier)
             return brier.detach().cpu().numpy().ravel()

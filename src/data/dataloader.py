@@ -17,7 +17,7 @@ def train_split(train_size, dataset, batch_size, to_binary, num_workers=0, seed=
     if (len(train_idx) * train_size) < 1.0:
         train_size = 1
     train_idx, unlabeled_pool_idx = train_test_split(
-        train_idx, train_size=train_size, random_state=random_state
+        train_idx, train_size=train_size, random_state=17
     )
     print(f"Training with {len(train_idx)} images!")
     print(f"Validating with {len(val_idx)} images!")

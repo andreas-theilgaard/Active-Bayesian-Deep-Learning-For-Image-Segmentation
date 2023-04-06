@@ -303,7 +303,7 @@ def active_train(
     MetricsValidate = CollectMetrics(device=device, out_ch=model.out_ch)
     # Now train loop
     for epoch in range(epochs):
-        train_loop = tqdm(train_loader, leave=False)  # Progress bar for the training data
+        train_loop = tqdm(train_loader)  # Progress bar for the training data
         for batch_number, batch in enumerate(train_loop):
             images, masks, idx = batch
             images = images.unsqueeze(1) if dataset != "warwick" else images
@@ -325,7 +325,7 @@ def active_train(
             MetricsTrain.AppendToGlobal()
 
         if epoch > -1:  # epoch%10==0:
-            val_loop = tqdm(val_loader, leave=False)
+            val_loop = tqdm(val_loader)
             with torch.no_grad():
                 model.eval()
                 for batch_number, batch in enumerate(val_loop):
@@ -353,7 +353,7 @@ def active_train(
         MetricsValidate,
         query_id,
         execution_time,
-        f"results/active_learning/train_val_{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{torch_seed}",
+        f"results/active_learning/train_val___{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{torch_seed}",
     )
     torch.save(model.state_dict(), f"models/{dataset}_{model_method}_{seed}_{torch_seed}.pth")
     # train and validate
@@ -400,6 +400,23 @@ def binarize(predictions):
 
 def unbinarize(predictions):
     return predictions[:, :, :, :, 0].unsqueeze(4)
+
+
+def plotting(masks, images, prediction_tensor):
+    import matplotlib.pyplot as plt
+
+    mean_predictions = prediction_tensor.mean(1)
+    print(mean_predictions.shape)
+    mean_predictions = mean_predictions[:, :, :, 0]
+    print(mean_predictions.shape)
+    var = prediction_tensor.var(1)
+    var = var[:, :, :, 0]
+    fig, axes = plt.subplots(1, 4)
+    fig.set_size_inches(6, 7)
+    axes[0].imshow(images[0].permute(1, 2, 0))
+    axes[1].imshow(masks[0])
+    axes[2].imshow(mean_predictions[0])
+    axes[3].imshow(var[0])
 
 
 def find_next(
@@ -502,10 +519,10 @@ def how_many_iters(dataset):
 def run_active(
     batch_size=4,
     learning_rate=0.001,
-    epochs=3,
+    epochs=30,
     momentum=0.9,
-    beta0=0.9,
-    train_size=0.01,
+    beta0=0.5,
+    train_size=0.90,
     dataset="PhC-C2DH-U373",
     device="cpu",
     validation_size=0.33,
@@ -519,7 +536,7 @@ def run_active(
     seed=261,
     torch_seeds=[17],
     first_train=True,
-    AcquisitionFunction="BALD",  # [Random,ShanonEntropy,BALD]
+    AcquisitionFunction="ShanonEntropy",  # [Random,ShanonEntropy,BALD]
     train_loader=None,
     val_loader=None,
     unlabeled_loader=None,
@@ -651,9 +668,9 @@ def run_active(
             AcquisitionFunction=AcquisitionFunction,
         )
         active_df.to_json(
-            f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{torch_seed}.json"
+            f"results/active_learning__/{dataset}_{AcquisitionFunction}_{seed}_{torch_seed}.json"
         )
 
 
-# if __name__ == "__main__":
-#     run_active()
+if __name__ == "__main__":
+    run_active()
