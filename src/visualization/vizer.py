@@ -31,6 +31,7 @@ def show_compare_results(dataset, cols, sizes, label=None, save_path=None, metho
         "DIC_C2DH_Hela": "DIC-Hela",
         "PhC-C2DH-U373": "PhC-U373",
         "membrane": "Membrane",
+        "warwick": "GlaS",
     }
 
     fig, axes = plt.subplots(len(sizes), len(methods))

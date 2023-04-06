@@ -11,6 +11,9 @@ import time
 import hydra
 from src.models.util_models import init_params
 from omegaconf import OmegaConf
+import random
+import numpy as np
+from src.config import Config
 
 # Wand b here
 def train(
@@ -33,7 +36,13 @@ def train(
     cfg = OmegaConf.load("src/configs/base.yaml")  # Load configurations from yaml file
     print(init_params(locals(), cfg))  # Print Configurations
 
+    # Set Seeds
+    random.seed(torch_seed)
+    np.random.seed(seed)
     torch.manual_seed(torch_seed)  # Set Torch Seed
+    torch.cuda.manual_seed_all(torch_seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     n_classes = 1 if binary else Config.n_classes[dataset]  # out channels to use for U-Net
     in_ch = (
@@ -170,6 +179,14 @@ def train(
         # Put Model Back In Train Mode
         model.train()
 
+    MetricsValidate.plots(
+        predictions_vec,
+        masks_vec,
+        title=f"Reliability Diagram - {Config.title_mapper[dataset]}",
+        save_path=f"Assets/{dataset}/{train_size}_{seed}_{torch_seed}_{batch_number}_{epoch+1}_Diagram",
+        dataset=dataset,
+    )
+
     end = time.time()  # Get end time
     execution_time = end - start  # Calculate execution time
     # Store metrics collected for each epoch to one big array
@@ -182,9 +199,9 @@ def train(
     return data_to_store
 
 
-# if __name__ == "__main__":
-#     res = train(dataset="membrane",train_size=0.61,epochs=1,turn_off_wandb=True)
-#     names = ['train_loss','train_dice','val_loss','val_dice','val_dice_all','val_NLL_all']
-#     out = {x:res[x][0][0] for x in names}
-#     print(out)
-#     print(res['val_NLL_all'])
+if __name__ == "__main__":
+    res = train(dataset="warwick", train_size=0.61, epochs=3, turn_off_wandb=True)
+    names = ["train_loss", "train_dice", "val_loss", "val_dice", "val_dice_all", "val_NLL_all"]
+    out = {x: res[x][0][0] for x in names}
+    print(out)
+    print(res["val_NLL_all"])

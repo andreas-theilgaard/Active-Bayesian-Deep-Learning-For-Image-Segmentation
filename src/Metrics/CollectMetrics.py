@@ -131,6 +131,13 @@ class CollectMetrics:
         self.MCE_local = []
         self.brier_local = []
 
+    def plots(self, predictions, masks, title, save_path, dataset):
+        if not os.path.exists(f"Assets/{dataset}"):
+            os.mkdir(f"Assets/{dataset}")
+        self.Calib_Metrics.PlotRealiabilityDiagram(
+            predictions, masks, title=title, save_path=save_path
+        )
+
 
 def store_results(
     MetricsTrain, MetricsValidate, execution_time, ActiveResults, save_path=None, query_id=None
@@ -221,5 +228,11 @@ class WandBLogger:
             images, masks, predictions, save_=save_, dataset=dataset, save_path=save_path
         )
         if save_ and type_ == "Validation":
-            wandb.log({"Final High Resolution Validation Example": wandb.Image(f"{save_path}.png")})
+            wandb.log(
+                {
+                    "Final High Resolution Validation Example": wandb.Image(
+                        f"{save_path}_predictions.png"
+                    )
+                }
+            )
         wandb.log({f"{type_} Predictions": fig})

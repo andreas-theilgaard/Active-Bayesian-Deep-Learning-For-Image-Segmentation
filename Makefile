@@ -29,6 +29,12 @@ requirements: test_environment
 data: requirements
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw data/processed
 
+# Make Colors
+map_title ?= SegmentColor
+colors:
+	$(PYTHON_INTERPRETER) src/visualization/make_colors.py $(map_title)
+
+
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete

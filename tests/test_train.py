@@ -2,50 +2,49 @@ import pytest
 import os
 from src.models.new_train_llop import train
 
-
 datasets = ["warwick", "PhC-C2DH-U373", "DIC_C2DH_Hela", "membrane"]
 
 
-@pytest.mark.skipif(not os.path.exists("data/raw/membrane"), reason="Data files not found")
 def Expected(dataset):
     if dataset == "warwick":
         return {
-            "train_loss": 0.652055025100708,
-            "train_dice": 0.6800824999809265,
-            "val_loss": 0.5792975425720215,
-            "val_dice": 0.7148911356925964,
-            "val_dice_all": 0.7196431159973145,
-            "val_NLL_all": 0.5763683319091797,
+            "train_loss": 0.628966212272644,
+            "train_dice": 0.6731500029563904,
+            "val_loss": 0.730646550655365,
+            "val_dice": 0.5577081441879272,
+            "val_dice_all": 0.5767558217048645,
+            "val_NLL_all": 0.7315257787704468,
         }
     elif dataset == "membrane":
         return {
-            "train_loss": 0.6655133962631226,
-            "train_dice": 0.7325355410575867,
-            "val_loss": 0.4362846910953522,
-            "val_dice": 0.8816827535629272,
-            "val_dice_all": 0.8818323612213135,
-            "val_NLL_all": 0.4362432360649109,
+            "train_loss": 0.6939770579338074,
+            "train_dice": 0.7257911562919617,
+            "val_loss": 0.4101446270942688,
+            "val_dice": 0.8927456140518188,
+            "val_dice_all": 0.8928332924842834,
+            "val_NLL_all": 0.410144567489624,
         }
     elif dataset == "PhC-C2DH-U373":
         return {
-            "train_loss": 0.19119656085968018,
-            "train_dice": 0.5030667781829834,
-            "val_loss": 0.12329605221748352,
-            "val_dice": 0.6123033761978149,
-            "val_dice_all": 0.6123578548431396,
-            "val_NLL_all": 0.12329605221748352,
+            "train_loss": 0.1838405430316925,
+            "train_dice": 0.5304087996482849,
+            "val_loss": 0.1175345852971077,
+            "val_dice": 0.6170467138290405,
+            "val_dice_all": 0.6180570125579834,
+            "val_NLL_all": 0.1175345927476883,
         }
     elif dataset == "DIC_C2DH_Hela":
         return {
-            "train_loss": 0.5812353491783142,
-            "train_dice": 0.6570649147033691,
-            "val_loss": 0.6112041473388672,
-            "val_dice": 0.7202469706535339,
-            "val_dice_all": 0.7273185849189758,
-            "val_NLL_all": 0.5911003947257996,
+            "train_loss": 0.595565915107727,
+            "train_dice": 0.6300970911979675,
+            "val_loss": 0.4885545074939728,
+            "val_dice": 0.7735194563865662,
+            "val_dice_all": 0.7763318419456482,
+            "val_NLL_all": 0.48891156911849976,
         }
 
 
+@pytest.mark.skipif(not os.path.exists("data/raw/membrane"), reason="Data files not found")
 def test_model_train():
     for dataset in datasets:
         res = train(dataset=dataset, train_size=0.61, epochs=1, turn_off_wandb=True)

@@ -74,7 +74,7 @@ def train(enable_dropout_var=False, n_samples=500, epochs=100, device="cpu", see
             loss = criterion(pred.squeeze(1), y)
             loss.backward()
             optimizer.step()
-    torch.save(model.state_dict(), f"tests/train_reg_model_{seed}.pt")
+    torch.save(model.state_dict(), f"playground/train_reg_model_{seed}.pt")
     model.eval()
     print(f"Predictions in train loop {model(torch.tensor([[0.3],[0.7896]]))}")
 
@@ -94,7 +94,7 @@ def deep_ensemble_predict(seeds, n_samples=500, device="cpu"):
 
     for i in range(len(seeds)):
         model = NN()
-        model.load_state_dict(torch.load(f"tests/train_reg_model_{seeds[i]}.pt"))
+        model.load_state_dict(torch.load(f"playground/train_reg_model_{seeds[i]}.pt"))
         model.to(device)
         model.eval()
         print(f"Predictions in deep_ensemvle loop {model(torch.tensor([[0.3],[0.7896]]))}")
@@ -114,7 +114,7 @@ def deep_ensemble_predict(seeds, n_samples=500, device="cpu"):
 
 
 def MC_predict(
-    mc_samples=50, n_samples=500, model_path="tests/train_reg_model_10.pt", device="cpu"
+    mc_samples=50, n_samples=500, model_path="playground/train_reg_model_10.pt", device="cpu"
 ):
     torch.manual_seed(10)
     model = NN(enable_dropout=True)
@@ -144,8 +144,8 @@ def MC_predict(
     plt.show()
 
 
-type_ = "DE"
-# type_ = "MCD"
+# type_ = "DE"
+type_ = "MCD"
 
 if __name__ == "__main__":
     if type_ == "DE":

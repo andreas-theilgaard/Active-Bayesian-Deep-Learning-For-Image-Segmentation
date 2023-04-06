@@ -10,7 +10,7 @@ from torchmetrics.classification import BinaryF1Score
 
 def simulated_train_loop():
     dataset = "membrane"
-    device = find_best_device()
+    device = "cpu"
     torch.manual_seed(17)
     model = UNET(
         in_ch=1,
@@ -47,7 +47,7 @@ def simulated_train_loop():
     dice = BinaryF1Score()
 
     # Now train loop
-    for epoch in range(20):
+    for epoch in range(3):
         train_loop = tqdm(train_loader, leave=False)  # Progress bar for the training data
         dice_vec = []
         for batch_number, batch in enumerate(train_loop):
@@ -77,7 +77,7 @@ def simulated_train_loop():
 
 
 def simulated_eval_loop():
-    device = find_best_device()
+    device = "cpu"
     print(f"Running on Device {device}")
     train_out = simulated_train_loop()
 

@@ -6,12 +6,12 @@ import os
 
 
 @pytest.mark.skipif(
-    not os.path.exists("test_assets/predictionsNormal.pth"), reason="Data files not found"
+    not os.path.exists("tests/test_assets/predictionsNormal.pth"), reason="Data files not found"
 )
 def test_calibration_metrics():
-    images = torch.load("test_assets/imagesNormal.pth")
-    masks = torch.load("test_assets/masksNormal.pth")
-    predictions = torch.load("test_assets/predictionsNormal.pth")
+    images = torch.load("tests/test_assets/imagesNormal.pth")
+    masks = torch.load("tests/test_assets/masksNormal.pth")
+    predictions = torch.load("tests/test_assets/predictionsNormal.pth")
 
     # Test On CPU
     CalibMetrics = Calibration_Scoring_Metrics(

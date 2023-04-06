@@ -4,9 +4,10 @@ from torch.nn.functional import one_hot, softmax
 import numpy as np
 import netcal
 import matplotlib.pyplot as plt
-from src.visualization.CalibrationPlots import ReliabilityDiagram
+from src.visualization.RealiabilityDiagramUtils import ReliabilityDiagram
 from netcal.metrics import ECE, MCE
 from torchmetrics.classification import BinaryCalibrationError, MulticlassCalibrationError
+import os
 
 
 def logit(predictions):
@@ -101,7 +102,9 @@ class Calibration_Scoring_Metrics:
             )
         return (ECE, MCE)
 
-    def PlotRealiabilityDiagram(self, y_hat, y_true, title=None, save_path=None, show=False):
+    def PlotRealiabilityDiagram(
+        self, y_hat, y_true, title=None, save_path=None, dataset=None, show=False
+    ):
         ECE, _ = self.CalibrationErrors(y_hat, y_true)
         diagram = ReliabilityDiagram(bins=10)
         diagram.plot(
@@ -111,7 +114,7 @@ class Calibration_Scoring_Metrics:
             title_suffix=title,
         )
         if save_path:
-            plt.savefig(save_path, dpi=1200)
+            plt.savefig(f"{save_path}.png", dpi=1200)
         if show:
             plt.show()
 

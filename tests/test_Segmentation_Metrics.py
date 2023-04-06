@@ -77,11 +77,11 @@ class SegmentationMetricsOld:
 
 
 @pytest.mark.skipif(
-    not os.path.exists("test_assets/predictionsNormal.pth"), reason="Data files not found"
+    not os.path.exists("tests/test_assets/predictionsNormal.pth"), reason="Data files not found"
 )
 def test_segmentation_metrics():
-    masks = torch.load("test_assets/masksNormalQ.pth")
-    predictions = torch.load("test_assets/predictionsNormalQ.pth")
+    masks = torch.load("tests/test_assets/masksNormalQ.pth")
+    predictions = torch.load("tests/test_assets/predictionsNormalQ.pth")
 
     Seg_Metrics_Old = SegmentationMetricsOld()
     Dice_Old = Seg_Metrics_Old.Dice_Coef(predictions.squeeze(1), masks).item()

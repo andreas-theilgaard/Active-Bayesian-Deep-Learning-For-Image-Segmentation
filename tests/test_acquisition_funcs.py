@@ -41,7 +41,7 @@ def get_predictions(type_=1):
         )
         predictions = np.moveaxis(predictions, [0, 1, 2], [1, 0, 2])
     elif type_ == 2:
-        predictions = torch.load("test_assets/predictions.pth")
+        predictions = torch.load("tests/test_assets/predictions.pth")
     return predictions
 
 
@@ -56,7 +56,7 @@ def test_accquisition_Entropy():
     assert np.sum(np.isclose(Entropy, expected)) == len(expected)
 
     # Entropy MultiDim Case
-    if os.path.isfile("test_assets/predictions.pth"):
+    if os.path.isfile("tests/test_assets/predictions.pth"):
         predictions = get_predictions(type_=2)
         Entropy = AL_Acquisitions.ApplyAcquisition(predictions, "ShanonEntropy")
         expected = torch.tensor(
@@ -88,7 +88,7 @@ def test_accquisition_BALD():
     assert np.sum(np.isclose(BALD, expected)) == len(expected)
 
     # BALD MultiDim Case
-    if os.path.isfile("test_assets/predictions.pth"):
+    if os.path.isfile("tests/test_assets/predictions.pth"):
         predictions = get_predictions(type_=2)
         BALD = AL_Acquisitions.ApplyAcquisition(predictions, "BALD")
         expected = torch.tensor(
@@ -126,7 +126,7 @@ def test_accquisition_JSD():
     assert np.sum(np.isclose(JSD_values, expected)) == len(expected)
 
     # JSD MultiDim Case
-    if os.path.isfile("test_assets/predictions.pth"):
+    if os.path.isfile("tests/test_assets/predictions.pth"):
         predictions = get_predictions(type_=2)
         JSD_values = AL_Acquisitions.ApplyAcquisition(predictions, "JensenDivergence")
         expected = torch.tensor(

@@ -75,7 +75,7 @@ class ReliabilityDiagram(object):
         fmin: float = None,
         fmax: float = None,
         metric: str = "ECE",
-        **kwargs
+        **kwargs,
     ):
         """Constructor. For detailed parameter documentation view classdocs."""
 
@@ -112,7 +112,7 @@ class ReliabilityDiagram(object):
         title_suffix: str = None,
         feature_names: List[str] = None,
         fig: plt.Figure = None,
-        **save_args
+        **save_args,
     ) -> Union[plt.Figure, str]:
         """
         Reliability diagram to visualize miscalibration. This could be either in classical way for confidences only
@@ -375,8 +375,8 @@ class ReliabilityDiagram(object):
         ax = axes  # [0]
 
         # set title suffix if given
-        if title_suffix is not None:
-            ax.set_title("Reliability Diagram", fontsize=18, **csfont)
+        if title_suffix is None:
+            ax.set_title(f"Reliability Diagram", fontsize=18, **csfont)
         else:
             ax.set_title(title_suffix, fontsize=18, **csfont)
 

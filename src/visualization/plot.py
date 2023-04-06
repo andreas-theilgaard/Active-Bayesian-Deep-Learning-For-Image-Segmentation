@@ -85,6 +85,6 @@ def plot_prediction_batch(
             axes[i, 2].imshow(pred_mask, cmap="viridis")
             axes[i, 2].axis("off")
     if save_:
-        print(f"{save_path}.png")
+        print(f"{save_path}_predictions.png")
         fig.savefig(f"{save_path}.png", dpi=1000)
     return fig
