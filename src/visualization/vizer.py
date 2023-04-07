@@ -2,13 +2,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-csfont = {"fontname": "Times New Roman"}
-
 # membrane_001 = "results/compare_results/membrane_size=0.01.json"
 # membrane_032_063 = "results/compare_results/membrane_size=0.32_0.63.json"
 # df.columns
 # df = pd.concat([pd.read_json(membrane_001), pd.read_json(membrane_032_063)])
 # df = pd.read_json('results/compare_results/DIC_C2DH_Hela.json')
+csfont = {"fontname": "Times New Roman"}
 
 
 def show_compare_results(dataset, cols, sizes, label=None, save_path=None, methods=None):
@@ -83,12 +82,19 @@ def show_compare_results(dataset, cols, sizes, label=None, save_path=None, metho
 
 
 if __name__ == "__main__":
+    # show_compare_results(
+    #     "DIC_C2DH_Hela",
+    #     ["val_dice"],
+    #     [0.01, 0.32, 0.63],
+    #     "Dice Score",
+    #     save_path="results/assets/DIC_C2DH_Hela.png",
+    # )
     show_compare_results(
-        "DIC_C2DH_Hela",
+        "warwick",
         ["val_dice"],
         [0.01, 0.32, 0.63],
         "Dice Score",
-        save_path="results/assets/DIC_C2DH_Hela.png",
+        save_path="results/assets/Warwick.png",
     )
     # show_compare_results("PhC-C2DH-U373", ["val_dice"], [0.01, 0.32, 0.63], "Dice Score",save_path='results/assets/PhC-C2DH-U373.png')
     # show_compare_results("membrane", ["val_dice"], [0.01, 0.32, 0.63], "Dice Score",save_path='results/assets/membrane.png')

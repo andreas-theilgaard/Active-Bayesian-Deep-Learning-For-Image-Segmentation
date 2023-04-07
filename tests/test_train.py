@@ -1,6 +1,6 @@
 import pytest
 import os
-from src.models.new_train_llop import train
+from src.models.train_model import train
 
 datasets = ["warwick", "PhC-C2DH-U373", "DIC_C2DH_Hela", "membrane"]
 
