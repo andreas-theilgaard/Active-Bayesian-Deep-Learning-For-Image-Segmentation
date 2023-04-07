@@ -15,7 +15,8 @@ import tikzplotlib
 
 from netcal.metrics.Miscalibration import _Miscalibration
 
-csfont = {"fontname": "Times New Roman"}
+# csfont = {"fontname": "Times New Roman"}
+csfont = {"fontname": "sans-serif"}
 
 
 class ReliabilityDiagram(object):

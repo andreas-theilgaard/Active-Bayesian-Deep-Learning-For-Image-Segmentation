@@ -7,7 +7,7 @@ import numpy as np
 # df.columns
 # df = pd.concat([pd.read_json(membrane_001), pd.read_json(membrane_032_063)])
 # df = pd.read_json('results/compare_results/DIC_C2DH_Hela.json')
-csfont = {"fontname": "Times New Roman"}
+csfont = {"fontname": "sans-serif"}
 
 
 def show_compare_results(dataset, cols, sizes, label=None, save_path=None, methods=None):

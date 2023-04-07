@@ -1,5 +1,5 @@
 class styles:
-    csfont = {"fontname": "Times New Roman"}
+    csfont = {"fontname": "sans-serif"}
     dpi_level = 600
 
 

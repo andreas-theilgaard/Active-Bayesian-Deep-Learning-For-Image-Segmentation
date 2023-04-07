@@ -19,8 +19,9 @@ import glob
 import random
 from src.visualization.viz_utils import styles
 from src.config import Config
+import numpy as np
 
-plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams.update({"font.size": 14})
 
 

@@ -16,7 +16,7 @@ from PIL import Image
 from src.config import Config
 import random
 
-plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams.update({"font.size": 14})
 
 
