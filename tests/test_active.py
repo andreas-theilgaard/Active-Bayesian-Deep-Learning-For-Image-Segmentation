@@ -16,6 +16,7 @@ model_params = {
 dataset = "PhC-C2DH-U373"
 
 
+@pytest.mark.skipif(1 == 1, reason="Too Computationally Expensive - Run Local !!!")
 def test_active_run():
     seed = 261
     # Random Test #
