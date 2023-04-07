@@ -8,7 +8,7 @@
 #
 ###################################################################################################################
 from src.visualization.viz_utils import styles
-from src.ActiveLearning.AL_utils import unbinarize
+from src.ActiveLearning.AL_utils import unbinarize, binarize
 from src.ActiveLearning.AcquisitionFunctions import ActiveLearningAcquisitions
 import torch
 import matplotlib.pyplot as plt
@@ -132,11 +132,11 @@ def viz_batch(
 
     if reduction:
         assert len(predictions.shape) == 5
+        if predictions.shape[-1] == 1:
+            predictions = binarize(predictions)
         Acq_funcs = ActiveLearningAcquisitions()
         Entropy, BALD, JSD = Acq_funcs.Get_All_Pixel_Wise(predictions)
-        # ged=Acq_funcs.ShanonEntropy(predictions)
-        # hej = Acq_funcs.BALD(predictions)
-        # hey = Acq_funcs.JensenDivergence(predictions)
+
         unbinarized_prediction = unbinarize(predictions)  # Get P(Y=1)
         var = unbinarized_prediction.var(1)  # [batch_size,img_height,img_width,n_classes=1]
         mean_prediction = torch.mean(
@@ -205,7 +205,7 @@ def viz_batch(
                     if i == 0:
                         axes[i, j].set_title(translator[cols[j]])
     if save_:
-        fig.savefig(f"{save_path}.png", dpi=1200)
+        fig.savefig(f"{save_path}_predictions.png", dpi=1200)
     return fig
 
 

@@ -4,7 +4,9 @@ from src.Metrics.SegmentationMetrics import SegmentationMetrics
 from src.experiments.experiment_utils import arrayify_results
 import os
 import wandb
-from src.visualization.plot import plot_prediction_batch
+
+# from src.visualization.plot import plot_prediction_batch
+from src.visualization.viz_tools import viz_batch
 
 
 class CollectMetrics:
@@ -131,11 +133,13 @@ class CollectMetrics:
         self.MCE_local = []
         self.brier_local = []
 
-    def plots(self, predictions, masks, title, save_path, dataset):
+    def plots(
+        self, predictions, masks, dataset, title=None, from_logits=True, save_path=None, show=False
+    ):
         if not os.path.exists(f"Assets/{dataset}"):
             os.mkdir(f"Assets/{dataset}")
         self.Calib_Metrics.PlotRealiabilityDiagram(
-            predictions, masks, title=title, save_path=save_path
+            predictions, masks, title=title, save_path=save_path, show=show, from_logits=from_logits
         )
 
 
@@ -224,8 +228,19 @@ class WandBLogger:
     def log_images(self, type_, save_, images, masks, predictions, dataset, save_path):
         if not os.path.exists(f"Assets/{dataset}"):
             os.mkdir(f"Assets/{dataset}")
-        fig = plot_prediction_batch(
-            images, masks, predictions, save_=save_, dataset=dataset, save_path=save_path
+        # fig = plot_prediction_batch(
+        #    images, masks, predictions, save_=save_, dataset=dataset, save_path=save_path
+        # )
+        fig = viz_batch(
+            images,
+            masks,
+            predictions,
+            cols=["img", "mask", "pred", "err"],
+            from_logits=True,
+            reduction=False,
+            save_=save_,
+            dataset=dataset,
+            save_path=save_path,
         )
         if save_ and type_ == "Validation":
             wandb.log(

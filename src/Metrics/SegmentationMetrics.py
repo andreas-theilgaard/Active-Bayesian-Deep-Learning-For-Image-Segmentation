@@ -25,8 +25,9 @@ class SegmentationMetrics:
     def ConfusionMatrix(self, y_hat, y_true):
         assert torch.is_tensor(y_hat) == True
         assert torch.is_tensor(y_true) == True
-        if y_hat.min().item() < 0.0:
-            y_hat = (torch.sigmoid(y_hat) >= 0.50).float()
+        if y_hat.min().item() < 0.0 or (y_hat.max().item() > 1.0):
+            y_hat = torch.sigmoid(y_hat)
+        y_hat = (y_hat > 0.50).float()
 
         TP = (y_hat.flatten() * y_true.flatten()).sum()
         FN = y_true[y_hat == 0].sum()
@@ -48,17 +49,17 @@ class SegmentationMetrics:
     def PixelAccuracy(self):
         return ((self.TP + self.TN) / (self.TP + self.FN + self.FP + self.TN)).item()
 
-    def Soft_Dice(self, pred, mask):
+    def Soft_Dice(self, pred, mask, from_logits=True):
         assert torch.is_tensor(pred) == True
         assert torch.is_tensor(mask) == True
         mask = mask.unsqueeze(1)
-        pred = torch.sigmoid(pred)
+        pred = torch.sigmoid(pred) if from_logits else pred
         intersection = torch.sum(pred * mask, dim=(1, 2, 3))
         union = torch.sum(mask, dim=(1, 2, 3)) + torch.sum(pred, dim=(1, 2, 3))
         dice = (2.0 * intersection + self.numeric_stability) / (union + self.numeric_stability)
         return torch.mean(dice).item()
 
-    def Calculate_Segmentation_Metrics(self, y_hat, y_true):
+    def Calculate_Segmentation_Metrics(self, y_hat, y_true, from_logits=True):
         if self.torch_metrics:
             Dice = self.dice(y_hat, y_true.type(torch.float32)).item()
             Acc = self.pixel_acc(y_hat, y_true.type(torch.float32)).item()
@@ -66,5 +67,5 @@ class SegmentationMetrics:
         else:
             self.ConfusionMatrix(y_hat, y_true)
             Dice, IOU, Acc = self.Dice(), self.IOU(), self.PixelAccuracy()
-        Soft_Dice = self.Soft_Dice(y_hat.unsqueeze(1), y_true)
+        Soft_Dice = self.Soft_Dice(y_hat.unsqueeze(1), y_true, from_logits=from_logits)
         return (Dice, IOU, Acc, Soft_Dice)

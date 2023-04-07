@@ -20,7 +20,9 @@ def train_split(train_size, dataset, batch_size, to_binary, num_workers=0, seed=
         unlabeled_loader = None
         # np.random.shuffle(train_idx)
     else:
-        if (len(train_idx) * train_size) < 1.0:
+        if isinstance(train_size, str) and f"{train_size[0]}-Samples":
+            train_size = int(train_size[0])
+        elif (len(train_idx) * train_size) < 1.0:
             train_size = 1
         train_idx, unlabeled_pool_idx = train_test_split(
             train_idx, train_size=train_size, random_state=random_state

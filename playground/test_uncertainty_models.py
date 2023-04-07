@@ -6,6 +6,23 @@ from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
 
 
+class EarlyStopping:
+    def __init__(self, tolerance=15, best_val_loss=np.inf):
+        self.tolerance = tolerance
+        self.counter = 0
+        self.early_stop = False
+        self.best_val_loss = best_val_loss
+
+    def __call__(self, validation_loss):
+        if validation_loss < self.best_val_loss:
+            self.counter = 0
+            self.best_val_loss = validation_loss
+        else:
+            self.counter += 1
+        if self.counter >= self.tolerance:
+            self.early_stop = True
+
+
 def toy_data(n_samples=500):
     np.random.seed(0)
     X = np.random.normal(size=(n_samples, 1)).reshape(-1, 1)
@@ -63,8 +80,12 @@ def train(enable_dropout_var=False, n_samples=500, epochs=100, device="cpu", see
     model.to(device)
     criterion = nn.MSELoss().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    EarlyStopper = EarlyStopping(tolerance=15)
     torch.manual_seed(seed)
+
+    train_loss_global = []
     for _ in tqdm(range(epochs)):
+        train_loss_local = []
         for batch in train_data:
             X, y = batch
             X = X.to(device)
@@ -74,6 +95,15 @@ def train(enable_dropout_var=False, n_samples=500, epochs=100, device="cpu", see
             loss = criterion(pred.squeeze(1), y)
             loss.backward()
             optimizer.step()
+            train_loss_local.append(loss.item())
+        local_mean_loss = torch.tensor(train_loss_local).mean().item()
+        train_loss_global.append(local_mean_loss)
+        EarlyStopper(local_mean_loss)
+        # print(train_loss_global)
+        if EarlyStopper.early_stop:
+            print("Now we stop")
+            break
+
     torch.save(model.state_dict(), f"playground/train_reg_model_{seed}.pt")
     model.eval()
     print(f"Predictions in train loop {model(torch.tensor([[0.3],[0.7896]]))}")
@@ -144,8 +174,8 @@ def MC_predict(
     plt.show()
 
 
-# type_ = "DE"
-type_ = "MCD"
+type_ = "DE"
+# type_ = "MCD"
 
 if __name__ == "__main__":
     if type_ == "DE":

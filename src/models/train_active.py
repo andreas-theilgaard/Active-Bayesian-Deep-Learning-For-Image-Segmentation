@@ -22,7 +22,6 @@ import hydra
 from src.models.model import UNET, init_weights
 
 # from src.models.new_model import UNET, init_weights
-from src.visualization.plot import plot_prediction_batch
 from src.config import Config
 from src.data.dataloader import train_split, data_from_index
 import pandas as pd

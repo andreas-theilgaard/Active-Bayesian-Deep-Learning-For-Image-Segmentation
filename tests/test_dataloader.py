@@ -202,7 +202,6 @@ def test_all_train():
 def test_how_many_classes():
     all_datasets = list(Config.datasets)
     for dataset in all_datasets:
-
         train_loader, val_loader, _, _, _, _ = train_split(
             train_size="100%",
             dataset=dataset,
@@ -223,3 +222,37 @@ def test_how_many_classes():
 
         print(f"\nUnique Classes {dataset}: {len(uniq_classes)}\n")
         assert len(uniq_classes) == Config.n_classes[dataset]
+
+
+def test_active_start():
+    all_datasets = list(Config.datasets)
+    for dataset in all_datasets:
+        for seed in [261, 17]:
+            for i in range(2):
+                _, _, _, train_idx, val_idx, unlabel_idx = train_split(
+                    train_size="2-Samples",
+                    dataset=dataset,
+                    batch_size=4,
+                    to_binary=False if dataset != "membrane" else True,
+                    num_workers=0,
+                    seed=seed,
+                )
+                if i == 0:
+                    tmp_train = train_idx
+                    tmp_val = val_idx
+                    tmp_unlabel = unlabel_idx
+                if i == 1:
+                    assert np.sum(np.array(tmp_train) == np.array(train_idx)) == len(train_idx)
+                    assert np.sum(np.array(tmp_val) == np.array(val_idx)) == len(val_idx)
+                    assert np.sum(np.array(tmp_unlabel) == np.array(unlabel_idx)) == len(
+                        unlabel_idx
+                    )
+                ##
+                assert (np.size(train_idx) + np.size(val_idx) + np.size(unlabel_idx)) == len(
+                    [x for x in os.listdir(f"data/raw/{dataset}/image") if x != ".DS_Store"]
+                )
+
+
+# if __name__=='__main__':
+#     #test_active_start()
+#     test_data_idx()

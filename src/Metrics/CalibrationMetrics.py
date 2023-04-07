@@ -61,7 +61,7 @@ class Calibration_Scoring_Metrics:
             return torch.mean(loss_per_sample_in_batch).item()
         return loss_per_sample_in_batch
 
-    def brier_score(self, y_hat, y_true, sample_wise=True):
+    def brier_score(self, y_hat, y_true, from_logits=True, sample_wise=True):
         """
         y_hat: predictions
         """
@@ -80,35 +80,45 @@ class Calibration_Scoring_Metrics:
                 brier = torch.mean(brier)
             return brier.detach().cpu().numpy().ravel()
         else:
-            p = torch.sigmoid(y_hat)
+            p = torch.sigmoid(y_hat) if from_logits else y_hat
             brier = torch.mean(((p - y_true) ** 2).reshape(y_hat.shape[0], -1), dim=1, keepdim=True)
             if self.reduction == "mean":
                 brier = torch.mean(brier).item()
                 return brier
             return brier.detach().cpu().numpy().ravel()
 
-    def CalibrationErrors(self, y_hat, y_true):
+    def CalibrationErrors(self, y_hat, y_true, from_logits=True):
         if self.torchmetrics:
             ECE = self.torch_ECE(y_hat, y_true).item()
             MCE = self.torch_MCE(y_hat, y_true).item()
         else:
+            y_hat = (
+                torch.sigmoid(y_hat).detach().cpu().numpy().ravel()
+                if from_logits
+                else y_hat.detach().cpu().numpy().ravel()
+            )
             ECE = self.ECE_Metric.measure(
-                torch.sigmoid(y_hat).detach().cpu().numpy().ravel(),
+                y_hat,
                 y_true.detach().cpu().numpy().ravel(),
             )
             MCE = self.MCE_Metric.measure(
-                torch.sigmoid(y_hat).detach().cpu().numpy().ravel(),
+                y_hat,
                 y_true.detach().cpu().numpy().ravel(),
             )
         return (ECE, MCE)
 
     def PlotRealiabilityDiagram(
-        self, y_hat, y_true, title=None, save_path=None, dataset=None, show=False
+        self, y_hat, y_true, from_logits=True, title=None, save_path=None, dataset=None, show=False
     ):
-        ECE, _ = self.CalibrationErrors(y_hat, y_true)
+        ECE, _ = self.CalibrationErrors(y_hat, y_true, from_logits=from_logits)
+        y_hat = (
+            torch.sigmoid(y_hat.squeeze(1)).detach().cpu().numpy().ravel()
+            if from_logits
+            else y_hat.squeeze(1).detach().cpu().numpy().ravel()
+        )
         diagram = ReliabilityDiagram(bins=10)
         diagram.plot(
-            torch.sigmoid(y_hat.squeeze(1)).detach().cpu().numpy().ravel(),
+            y_hat,
             y_true.detach().cpu().numpy().ravel(),
             ECE,
             title_suffix=title,
@@ -118,12 +128,12 @@ class Calibration_Scoring_Metrics:
         if show:
             plt.show()
 
-    def Calculate_Calibration_Metrics(self, y_hat, y_true):
+    def Calculate_Calibration_Metrics(self, y_hat, y_true, from_logits=True):
         """
         y_hat: logits predictions, [batch_size,img_width,img_height]
         y_true: masks, [batch_size,img_width,img_height]
         """
-        ECE, MCE = self.CalibrationErrors(y_hat, y_true)
+        ECE, MCE = self.CalibrationErrors(y_hat, y_true, from_logits=from_logits)
         NLL = self.NLL(y_hat, y_true)
-        Brier = self.brier_score(y_hat, y_true)
+        Brier = self.brier_score(y_hat, y_true, from_logits=from_logits)
         return (NLL, Brier, ECE, MCE)

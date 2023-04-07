@@ -99,7 +99,6 @@ def test_segmentation_metrics():
     Dice_Torch = dice(predictions.squeeze(1), masks.type(torch.float32)).item()
     pixel_acc_Torch = pixel_acc(predictions.squeeze(1), masks.type(torch.float32)).item()
     IOU_Torch = IOU_score(predictions.squeeze(1), masks.type(torch.float32)).item()
-    print(Dice_Torch)
     assert IOU_Old == IOU_Torch
     assert pixel_acc_Old == pixel_acc_Torch
     assert Dice_Torch == Dice_Old
@@ -109,10 +108,19 @@ def test_segmentation_metrics():
         predictions.squeeze(1), masks
     )
 
+    Dice_P, IOU_P, Acc_P, Soft_Dice_P = Seg_Metrics.Calculate_Segmentation_Metrics(
+        torch.sigmoid(predictions.squeeze(1)), masks, from_logits=False
+    )
+
     assert Dice == Dice_Old
     assert IOU == IOU_Torch
     assert Acc == pixel_acc_Old
     assert Soft_Dice == Soft_Dice_Old
+
+    assert Dice == Dice_P
+    assert IOU == IOU_P
+    assert Acc == Acc_P
+    assert Soft_Dice == Soft_Dice_P
 
     Seg_Metrics_Torch = SegmentationMetrics(torch_metrics=True)
     Dice_T, IOU_T, Acc_T, Soft_Dice_T = Seg_Metrics_Torch.Calculate_Segmentation_Metrics(

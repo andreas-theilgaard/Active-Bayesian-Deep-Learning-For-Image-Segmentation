@@ -3,7 +3,6 @@ import pytest
 from src.Metrics.CalibrationMetrics import Calibration_Scoring_Metrics
 from src.config import find_best_device
 import os
-import warnings
 
 
 @pytest.mark.skipif(
@@ -33,6 +32,10 @@ def test_calibration_metrics():
     )
 
     NLL, Brier, ECE, MCE = CalibMetrics.Calculate_Calibration_Metrics(predictions.squeeze(1), masks)
+    NLL_P, Brier_P, ECE_P, MCE_P = CalibMetrics.Calculate_Calibration_Metrics(
+        torch.sigmoid(predictions.squeeze(1)), masks, from_logits=False
+    )
+
     NLL_T, Brier_T, ECE_T, MCE_T = CalibMetricsTorch.Calculate_Calibration_Metrics(
         predictions.squeeze(1), masks
     )
@@ -45,6 +48,10 @@ def test_calibration_metrics():
     )
     assert torch.equal(
         torch.tensor([NLL, Brier, ECE, MCE]), torch.tensor([NLL_T, Brier_T, ECE_T, MCE_T])
+    )
+
+    assert torch.equal(
+        torch.tensor([NLL, Brier, ECE, MCE]), torch.tensor([NLL_P, Brier_P, ECE_P, MCE_P])
     )
 
     # Test On None CPU Device
@@ -67,3 +74,7 @@ def test_calibration_metrics():
                 [0.34668129682540894, 0.10216283053159714, 0.0510956967915845, 0.12541159082632425]
             ),
         )
+
+
+if __name__ == "__main__":
+    test_calibration_metrics()

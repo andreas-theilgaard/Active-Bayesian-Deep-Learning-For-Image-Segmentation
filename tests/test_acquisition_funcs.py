@@ -151,3 +151,7 @@ def test_accquisition_JSD():
         assert torch.isclose(JSD_values, expected).sum() == len(expected)
         _, _, jsd_pixel = AL_Acquisitions.Get_All_Pixel_Wise(predictions)
         assert abs(torch.sum((jsd_pixel.sum(dim=(1, 2)) - JSD_values)).item()) < 0.0001
+
+
+if __name__ == "__main__":
+    test_accquisition_BALD()

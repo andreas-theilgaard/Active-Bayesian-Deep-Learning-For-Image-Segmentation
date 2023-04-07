@@ -31,6 +31,7 @@ def train(
     seed=261,
     turn_off_wandb=False,
     torch_seed=17,
+    save_model=None,  # Model Path To Where Model Should Be Saved
 ):
 
     cfg = OmegaConf.load("src/configs/base.yaml")  # Load configurations from yaml file
@@ -187,6 +188,12 @@ def train(
         dataset=dataset,
     )
 
+    if save_model:
+        torch.save(
+            model.state_dict(),
+            f"models/MAP/{dataset}_{train_size}_{seed}_{torch_seed}_{enable_pool_dropout}.pth",
+        )
+
     end = time.time()  # Get end time
     execution_time = end - start  # Calculate execution time
     # Store metrics collected for each epoch to one big array
@@ -195,13 +202,18 @@ def train(
     )
     data_to_store["method"] = model_method
     data_to_store["Experiment Number"] = iter + 1
-    data_to_store["train_size"] = (train_size,)
+    data_to_store["train_size"] = train_size
     return data_to_store
 
 
 if __name__ == "__main__":
-    res = train(dataset="warwick", train_size=0.61, epochs=3, turn_off_wandb=True)
-    names = ["train_loss", "train_dice", "val_loss", "val_dice", "val_dice_all", "val_NLL_all"]
-    out = {x: res[x][0][0] for x in names}
-    print(out)
-    print(res["val_NLL_all"])
+    # from src.experiments.experiment_utils import arrayify_results
+    res = train(
+        dataset="warwick",
+        train_size=0.61,
+        epochs=20,
+        turn_off_wandb=True,
+        save_model=False,
+        enable_pool_dropout=False,
+    )
+    # arrayify_results(res,'results/test_frame')
