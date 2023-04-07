@@ -1,6 +1,7 @@
 import pytest
 import os
 from src.models.train_model import train
+from src.config import find_best_device
 
 datasets = ["warwick", "PhC-C2DH-U373", "DIC_C2DH_Hela", "membrane"]
 
@@ -47,6 +48,12 @@ def Expected(dataset):
 @pytest.mark.skipif(not os.path.exists("data/raw/membrane"), reason="Data files not found")
 def test_model_train():
     for dataset in datasets:
-        res = train(dataset=dataset, train_size=0.61, epochs=1, turn_off_wandb=True)
+        res = train(
+            dataset=dataset,
+            train_size=0.61,
+            epochs=1,
+            turn_off_wandb=True,
+            device=find_best_device(),
+        )
         expectation = Expected(dataset)
         assert sum([res[x][0][0] == expectation[x] for x in expectation.keys()]) == 6
