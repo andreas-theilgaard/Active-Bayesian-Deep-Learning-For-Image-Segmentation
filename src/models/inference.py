@@ -2,6 +2,7 @@ import torch
 from src.models.model import UNET, init_weights
 import numpy as np
 import random
+from tqdm import tqdm
 
 
 def enable_MCDropout(model):
@@ -115,7 +116,8 @@ def inference(
     data_loader: data_loader object
     method: which inference method to use
     """
-
+    assert method in ["Normal", "MCD", "DeepEnsemble", "Laplace", "BatchNorm"]
+    ensemble = []
     # go trhough each model in model list
     for i, model_path in enumerate(models):
         # set seeds
@@ -144,7 +146,7 @@ def inference(
             model.eval()
 
             # Normal Predictions
-            if method == "Normal":
+            if method in ["Normal", "BatchNorm"]:
                 assert len(models) == 1, "Expected a length of 1 when using method=='Normal'"
                 # Iterate Through data_loader
                 images_vec = []
@@ -152,7 +154,7 @@ def inference(
                 predictions_vec = []
                 prediction_idx = []
 
-                for batch in data_loader:
+                for batch in tqdm(data_loader):
                     images, masks, idx = batch
                     images = images.unsqueeze(1) if dataset != "warwick" else images
                     images = images.to(device=device, dtype=torch.float32)
@@ -189,7 +191,7 @@ def inference(
                 predictions_vec = []
                 prediction_idx = []
 
-                for batch in data_loader:
+                for batch in tqdm(data_loader):
                     images, masks, idx = batch
                     images = images.unsqueeze(1) if dataset != "warwick" else images
                     images = images.to(device=device, dtype=torch.float32)
@@ -226,12 +228,12 @@ def inference(
                 ) == len(predictions.shape)
                 assert ((predictions.sum(dim=(2, 3, 4))).std(dim=1)).mean() != 0
 
-            elif method == "Deep Ensemble":
+            elif method == "DeepEnsemble":
                 images_vec = []
                 masks_vec = []
                 predictions_vec = []
                 prediction_idx = []
-                for batch in data_loader:
+                for batch in tqdm(data_loader):
                     images, masks, idx = batch
                     images = images.unsqueeze(1) if dataset != "warwick" else images
                     images = images.to(device=device, dtype=torch.float32)
@@ -252,11 +254,7 @@ def inference(
                 masks = torch.vstack(masks_vec)
                 predictions = torch.vstack(predictions_vec)
                 prediction_idx = torch.cat(prediction_idx)
-
-                if i == 0:
-                    ensemble = predictions
-                else:
-                    ensemble = torch.vstack([ensemble, predictions])
+                ensemble.append(predictions)
 
             elif method == "Laplace":
                 print("Not Implemented Yet!!!!")
@@ -284,6 +282,7 @@ def inference(
                 # predictions = torch.vstack(predictions_vec)
 
     if method == "DeepEnsemble":
+        ensemble = torch.stack(ensemble, dim=1)
         assert sum(
             torch.tensor(list(ensemble.shape)).eq(
                 torch.tensor(

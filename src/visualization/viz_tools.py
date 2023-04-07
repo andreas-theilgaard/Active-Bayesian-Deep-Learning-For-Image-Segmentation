@@ -110,9 +110,9 @@ def viz_batch(
         "mask": "Masks",
         "pred": "Predictions",
         "err": "Error",
-        "var": "Predictive Variance",
+        "var": "PV",
         "entropy": "Entropy",
-        "mut_info": "Mutual Information",
+        "mut_info": "MI",
         "jsd": "JSD",
     }
     cols_checker = [x for x in cols if x not in expect]

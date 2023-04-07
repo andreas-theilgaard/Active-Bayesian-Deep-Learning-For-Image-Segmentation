@@ -179,9 +179,7 @@ def store_results(
 
     if ActiveResults:
         data_to_store["Query ID"] = query_id
-        arrayify_results(data_to_store, save_path=save_path)
-    else:
-        return data_to_store
+    return data_to_store
 
 
 import os

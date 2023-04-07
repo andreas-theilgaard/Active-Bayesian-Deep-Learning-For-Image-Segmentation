@@ -12,6 +12,7 @@ from torchmetrics.classification import (
     BinaryJaccardIndex,
     BinaryF1Score,
 )
+import random
 import argparse
 import os
 from src.models.model_utils import SegmentationMetrics, Calibration_Scoring_Metrics
@@ -221,7 +222,13 @@ def active_train(
     AcquisitionFunction=None,
 ):
 
-    torch.manual_seed(torch_seed)
+    # Set Seeds
+    random.seed(torch_seed)
+    np.random.seed(seed)
+    torch.manual_seed(torch_seed)  # Set Torch Seed
+    torch.cuda.manual_seed_all(torch_seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     # Load training and validation data
     if first_train:
@@ -321,7 +328,7 @@ def active_train(
             loss.backward()
             optimizer.step()
             train_loop.set_postfix({"loss": out_loss, "train_dice": out_Dice})
-            MetricsTrain.AppendToGlobal()
+        MetricsTrain.AppendToGlobal()
 
         if epoch > -1:  # epoch%10==0:
             val_loop = tqdm(val_loader)
@@ -342,7 +349,7 @@ def active_train(
                     # Collect metrics
                     out_loss, out_Dice = MetricsValidate.GetMetrics(predictions, masks, loss)
                     val_loop.set_postfix({"loss": out_loss, "val_dice": out_Dice})
-                    MetricsValidate.AppendToGlobal()
+                MetricsValidate.AppendToGlobal()
 
         model.train()
     end = time.time()
@@ -441,7 +448,7 @@ def find_next(
     torch_seed=None,
 ):
 
-    np.random.seed(torch_seed)
+    np.random.seed(261)
     Acq_Func = ActiveLearningAcquisitions()
 
     if AcquisitionFunction == "Random":
@@ -518,10 +525,10 @@ def how_many_iters(dataset):
 def run_active(
     batch_size=4,
     learning_rate=0.001,
-    epochs=30,
+    epochs=3,
     momentum=0.9,
-    beta0=0.5,
-    train_size=0.90,
+    beta0=0.9,
+    train_size="2-Sample",
     dataset="PhC-C2DH-U373",
     device="cpu",
     validation_size=0.33,

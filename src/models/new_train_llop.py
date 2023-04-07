@@ -207,13 +207,13 @@ def train(
 
 
 if __name__ == "__main__":
-    # from src.experiments.experiment_utils import arrayify_results
+    # torch seeds: [17,15,7,42,8]
     res = train(
         dataset="warwick",
         train_size=0.61,
         epochs=20,
+        torch_seed=17,
         turn_off_wandb=True,
-        save_model=False,
+        save_model=True,
         enable_pool_dropout=False,
     )
-    # arrayify_results(res,'results/test_frame')

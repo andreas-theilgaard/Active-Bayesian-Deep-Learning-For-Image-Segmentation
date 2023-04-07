@@ -401,14 +401,14 @@ class ReliabilityDiagram(object):
             color="violet",
             alpha=0.7,
         )
-        bbox_props = dict(boxstyle="square", fc="whitesmoke", ec="lightcoral", lw=1.0)
+        bbox_props = dict(boxstyle="square", fc="whitesmoke", ec="lightcoral", lw=1.5)
         ax.text(
-            0.095,
-            0.86,
+            0.09,
+            0.81,
             "ECE: {:.4f}".format(ece),
             ha="center",
             va="center",
-            size=19,
+            size=20,
             weight="normal",
             bbox=bbox_props,
         )

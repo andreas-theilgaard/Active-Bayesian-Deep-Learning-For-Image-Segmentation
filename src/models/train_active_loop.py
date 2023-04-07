@@ -20,7 +20,6 @@ import numpy as np
 import math
 from src.visualization.viz_tools import viz_batch
 
-
 # Wand b here
 def train(
     dataset="warwick",
@@ -43,11 +42,11 @@ def train(
     AcquisitionFunction=None,
     model_method="MCD",
     Earlystopping_=False,
-    same_checkpoint=False,
+    model_params=None,
 ):
 
+    cfg = OmegaConf.load("src/configs/base.yaml")  # Load configurations from yaml file
     if first_train:
-        cfg = OmegaConf.load("src/configs/base.yaml")  # Load configurations from yaml file
         print(init_params(locals(), cfg))  # Print Configurations
 
     # Set Seeds
@@ -67,19 +66,16 @@ def train(
 
     # Get model and initialize weights
     model = UNET(
-        in_ch=in_ch,
-        out_ch=n_classes,
-        bilinear_method=cfg.bilinear_method,
-        momentum=cfg.momentum,
-        enable_dropout=False,
-        dropout_prob=cfg.dropout_prob,
+        in_ch=model_params["in_ch"],
+        out_ch=model_params["n_classes"],
+        bilinear_method=model_params["bilinear_method"],
+        momentum=model_params["momentum"],
+        enable_dropout=model_params["enable_dropout"],
+        dropout_prob=model_params["dropout_prob"],
         enable_pool_dropout=enable_pool_dropout,
-        pool_dropout_prob=cfg.pool_dropout_prob,
+        pool_dropout_prob=model_params["pool_dropout_prob"],
     )
-    if same_checkpoint:
-        model.load_state_dict(torch.load(same_checkpoint))
-    else:
-        model.apply(init_weights)
+    model.apply(init_weights)
     model.to(device)
 
     # Initialize criterion and optimizer
@@ -232,17 +228,9 @@ def train(
         # Put Model Back In Train Mode
         model.train()
 
-    MetricsValidate.plots(
-        predictions_vec,
-        masks_vec,
-        title=f"Reliability Diagram - {Config.title_mapper[dataset]}",
-        save_path=f"Assets/{dataset}/{AcquisitionFunction}_{seed}_{torch_seed}_{batch_number}_{epoch+1}_Diagram",
-        dataset=dataset,
-    )
-
     torch.save(
         model.state_dict(),
-        f"models/{dataset}_{AcquisitionFunction}_{seed}_{torch_seed}_{enable_pool_dropout}.pth",
+        f"models/{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{torch_seed}_{enable_pool_dropout}.pth",
     )
 
     end = time.time()  # Get end time
@@ -332,6 +320,37 @@ def how_many_iters(dataset, start_size, binary, seed):
     return (iters_to_run, start_percent, N, n_start, track_progress)
 
 
+def information_message(models_list, dataset, AcquisitionFunction, seed, torch_seeds, model_method):
+    indent = "     "
+    print(
+        f"\n \n \n ################ Important Files Will Be saved at the following location ################### \n"
+    )
+    print(f"{indent}: Model Checkpoints\n")
+    for model_path in models_list:
+        print(f"{indent} {indent} - {model_path}\n")
+    print(f"{indent}: Json File with metrics for Train & Validation\n")
+    for torch_seed in torch_seeds:
+        print(
+            f"{indent} {indent} - results/active_learning/train_val_{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{torch_seed}\n"
+        )
+    print(f"{indent}: Json File Query Information\n")
+    print(
+        f"{indent} {indent} - results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json\n"
+    )
+    print(f"{indent}: Plot Savings can be found in\n")
+    print(
+        f"{indent} {indent} - Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_xxxx_pred_yyyy"
+    )
+    if model_method != "BatchNorm":
+        print(
+            f"{indent} {indent} - Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_xxxx_uncertain_yyyy"
+        )
+
+    print(
+        f"\n \n \n ############################################################################################ \n"
+    )
+
+
 def run_active(
     model_params,
     dataset="warwick",
@@ -347,13 +366,16 @@ def run_active(
     n_items_to_label=2,
     turn_off_wandb=True,
     Earlystopping_=False,
+    testing=False,
 ):
+
+    assert model_method in ["BatchNorm", "MCD", "DeepEnsemble", "Laplace"]
     # init loaders
     train_loader, val_loader, unlabeled_loader = None, None, None
     train_idx, val_idx, unlabeled_pool_idx = None, None, None
     print(f"Running on device {device}")
     models_list = [
-        f"models/{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{torch_seed}.pth"
+        f"models/{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{torch_seed}_{model_params['enable_pool_dropout']}.pth"
         for torch_seed in torch_seeds
     ]
     active_df = pd.DataFrame(
@@ -362,10 +384,14 @@ def run_active(
     iters_to_run, _, N, n_start, track_progress = how_many_iters(
         dataset=dataset, start_size=start_size, binary=binary, seed=seed
     )
-    print(iters_to_run, N, track_progress)
-    active_df.loc[len(active_df)] = [0, None, n_start, N - n_start]
 
-    MetricsCalulator = CollectMetrics(validation=True, device=device, out_ch=model_params["out_ch"])
+    information_message(models_list, dataset, AcquisitionFunction, seed, torch_seeds, model_method)
+
+    active_df.loc[len(active_df)] = [0, np.asarray([], dtype=object), n_start, N - n_start]
+
+    MetricsCalulator = CollectMetrics(
+        validation=True, device=device, out_ch=model_params["n_classes"]
+    )
 
     active_train_bar = tqdm(range(iters_to_run))
     for i in active_train_bar:
@@ -399,11 +425,13 @@ def run_active(
                 model_method=model_method,
                 first_train=first_train,
                 Earlystopping_=Earlystopping_,
+                model_params=model_params,
             )
 
         # Inference On Validation Data
         if i in track_progress:
-            images, masks, predictions = inference(
+            print("\n#################### Inference Plotting ####################")
+            images, masks, predictions, prediction_idx = inference(
                 models=models_list,
                 model_params=model_params,
                 data_loader=val_loader,
@@ -413,13 +441,24 @@ def run_active(
                 dataset=dataset,
                 device=device,
             )
-            mean_predictions = torch.mean(torch.sigmoid(predictions), dim=1)
-            mean_predictions = mean_predictions.permute(0, 3, 1, 2)
+            if model_method != "BatchNorm":
+                mean_predictions = torch.mean(torch.sigmoid(predictions), dim=1)
+                mean_predictions = mean_predictions.permute(0, 3, 1, 2)
+                assert (
+                    np.sum(
+                        np.array(list(mean_predictions.shape))
+                        == np.array([mean_predictions.shape[0], 1, 64, 64])
+                    )
+                    == 4
+                )
+            else:
+                mean_predictions = torch.sigmoid(predictions)
             MetricsCalulator.plots(
                 mean_predictions,
                 masks,
                 show=False,
                 dataset=dataset,
+                from_logits=False,
                 title=f"Reliability Diagram - {Config.title_mapper[dataset]}",
                 save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_Diagram",
             )
@@ -430,22 +469,23 @@ def run_active(
                 predictions[0:4],
                 cols=["img", "mask", "pred", "err"],
                 from_logits=True,
-                reduction=True,
+                reduction=True if model_method != "BatchNorm" else False,
                 save_=True,
                 dataset=dataset,
                 save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_pred_04",
             )
-            fig = viz_batch(
-                images[0:4],
-                masks[0:4],
-                predictions[0:4],
-                cols=["var", "entropy", "mut_info", "jsd"],
-                from_logits=True,
-                reduction=True,
-                save_=True,
-                dataset=dataset,
-                save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_uncertain_04",
-            )
+            if model_method != "BatchNorm":
+                fig = viz_batch(
+                    images[0:4],
+                    masks[0:4],
+                    predictions[0:4],
+                    cols=["var", "entropy", "mut_info", "jsd"],
+                    from_logits=True,
+                    reduction=True,
+                    save_=True,
+                    dataset=dataset,
+                    save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_uncertain_04",
+                )
             #
             fig = viz_batch(
                 images[16:20],
@@ -453,22 +493,25 @@ def run_active(
                 predictions[16:20],
                 cols=["img", "mask", "pred", "err"],
                 from_logits=True,
-                reduction=True,
+                reduction=True if model_method != "BatchNorm" else False,
                 save_=True,
                 dataset=dataset,
                 save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_pred_1620",
             )
-            fig = viz_batch(
-                images[16:20],
-                masks[16:20],
-                predictions[16:20],
-                cols=["var", "entropy", "mut_info", "jsd"],
-                from_logits=True,
-                reduction=True,
-                save_=True,
-                dataset=dataset,
-                save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_uncertain_1620",
-            )
+
+            if model_method != "BatchNorm":
+                fig = viz_batch(
+                    images[16:20],
+                    masks[16:20],
+                    predictions[16:20],
+                    cols=["var", "entropy", "mut_info", "jsd"],
+                    from_logits=True,
+                    reduction=True,
+                    save_=True,
+                    dataset=dataset,
+                    save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_uncertain_1620",
+                )
+            print("\n#################### Finish Inference Plotting ####################")
 
         # Run Inference with given Acquisition Function
         next_labels = find_next(
@@ -493,25 +536,30 @@ def run_active(
         active_train_bar.set_postfix({"Size training set": f"{len(train_idx)}/{N}"})
         active_df.loc[len(active_df)] = [
             i + 1,
-            np.array(next_labels, dtype=object),
+            np.asarray(next_labels, dtype=object),
             len(train_idx),
             len(unlabeled_pool_idx),
         ]
+        print(active_df)
+        if testing and i == 1:
+            print("Breaking Due To 'testing=True'")
+            break
     # Save results
     active_df.to_json(
-        f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{torch_seed}_{model_method}.json"
+        f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json"
     )
 
 
-if __name__ == "__main__":
-    model_params = {
-        "in_ch": 3,
-        "n_classes": 1,
-        "bilinear_method": False,
-        "momentum": 0.9,
-        "enable_dropout": False,
-        "dropout_prob": 0.5,
-        "enable_pool_dropout": True,
-        "pool_dropout_prob": 0.5,
-    }
-    run_active(model_params=model_params, dataset="membrane")
+# if __name__ == "__main__":
+#     model_params = {
+#         "in_ch": 1,
+#         "n_classes": 1,
+#         "bilinear_method": False,
+#         "momentum": 0.9,
+#         "enable_dropout": False,
+#         "dropout_prob": 0.5,
+#         "enable_pool_dropout": False,
+#         "pool_dropout_prob": 0.5,
+#     }
+#     #[17,8,42,19,5]
+#     run_active(model_params=model_params, dataset="PhC-C2DH-U373",epochs=3,start_size='2-Samples',model_method='DeepEnsemble',AcquisitionFunction='ShanonEntropy',torch_seeds=[17,8,42,19,5],seed=261)
