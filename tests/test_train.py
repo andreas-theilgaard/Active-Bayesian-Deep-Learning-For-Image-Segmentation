@@ -53,7 +53,7 @@ def test_model_train():
             train_size=0.61,
             epochs=1,
             turn_off_wandb=True,
-            device=find_best_device(),
+            device="cpu",
         )
         expectation = Expected(dataset)
         assert sum([res[x][0][0] == expectation[x] for x in expectation.keys()]) == 6

@@ -3,7 +3,7 @@ import numpy as np
 
 
 class EarlyStopping:
-    def __init__(self, tolerance=15, best_val_loss=np.inf):
+    def __init__(self, tolerance=20, best_val_loss=np.inf):
         self.tolerance = tolerance
         self.counter = 0
         self.early_stop = False

@@ -86,7 +86,7 @@ def train(
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, "min", patience=10, factor=0.1, threshold=0.001
     )
-    EarlyStopper = EarlyStopping(tolerance=15)
+    EarlyStopper = EarlyStopping(tolerance=20)
 
     MetricsTrain = CollectMetrics(validation=False, device=device, out_ch=model.out_ch)
     MetricsValidate = CollectMetrics(validation=True, device=device, out_ch=model.out_ch)
@@ -368,8 +368,12 @@ def run_active(
     Earlystopping_=False,
     testing=False,
 ):
-
     assert model_method in ["BatchNorm", "MCD", "DeepEnsemble", "Laplace"]
+    assert (
+        model_params["enable_pool_dropout"] == False
+        if model_method != "MCD"
+        else model_params["enable_pool_dropout"] == True
+    )
     # init loaders
     train_loader, val_loader, unlabeled_loader = None, None, None
     train_idx, val_idx, unlabeled_pool_idx = None, None, None
@@ -430,6 +434,7 @@ def run_active(
 
         # Inference On Validation Data
         if i in track_progress:
+            progress_i = int([x for x in track_progress if x == i][0])  # find the progress number
             print("\n#################### Inference Plotting ####################")
             images, masks, predictions, prediction_idx = inference(
                 models=models_list,
@@ -460,7 +465,7 @@ def run_active(
                 dataset=dataset,
                 from_logits=False,
                 title=f"Reliability Diagram - {Config.title_mapper[dataset]}",
-                save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_Diagram",
+                save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{progress_i}_Diagram",
             )
             #
             fig = viz_batch(
@@ -472,7 +477,7 @@ def run_active(
                 reduction=True if model_method != "BatchNorm" else False,
                 save_=True,
                 dataset=dataset,
-                save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_pred_04",
+                save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{progress_i}_pred_04",
             )
             if model_method != "BatchNorm":
                 fig = viz_batch(
@@ -484,7 +489,7 @@ def run_active(
                     reduction=True,
                     save_=True,
                     dataset=dataset,
-                    save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_uncertain_04",
+                    save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{progress_i}_uncertain_04",
                 )
             #
             fig = viz_batch(
@@ -496,7 +501,7 @@ def run_active(
                 reduction=True if model_method != "BatchNorm" else False,
                 save_=True,
                 dataset=dataset,
-                save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_pred_1620",
+                save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{progress_i}_pred_1620",
             )
 
             if model_method != "BatchNorm":
@@ -509,7 +514,7 @@ def run_active(
                     reduction=True,
                     save_=True,
                     dataset=dataset,
-                    save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{track_progress[i]}_uncertain_1620",
+                    save_path=f"Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_{progress_i}_uncertain_1620",
                 )
             print("\n#################### Finish Inference Plotting ####################")
 
