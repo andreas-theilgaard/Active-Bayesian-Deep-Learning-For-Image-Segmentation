@@ -4,15 +4,6 @@ from src.config import find_best_device
 from src.experiments.experiment_utils import arrayify_results
 from src.models.train_model import train
 
-[
-    (0.630103349685669, 0.628966212272644),
-    (0.6722779273986816, 0.6731500029563904),
-    (0.7230668663978577, 0.730646550655365),
-    (0.5525455474853516, 0.5577081441879272),
-    (0.5717694163322449, 0.5767558217048645),
-    (0.7238587141036987, 0.7315257787704468),
-]
-
 parser = argparse.ArgumentParser(description="Training arguments")
 parser.add_argument("--device", default=find_best_device())  # find_best_device
 parser.add_argument("--binary", default=True)
