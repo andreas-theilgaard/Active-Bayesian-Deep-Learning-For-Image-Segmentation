@@ -19,6 +19,7 @@ import os
 import numpy as np
 import math
 from src.visualization.viz_tools import viz_batch
+import time
 
 # Wand b here
 def train(
@@ -311,10 +312,27 @@ def find_next(
 # Main Loop
 
 
-def how_many_iters(dataset, start_size, binary, seed):
-    _, _, _, train_idx, val_idx, unlabel_idx = train_split(
-        dataset=dataset, train_size=start_size, batch_size=4, to_binary=binary, seed=seed
-    )
+def how_many_iters(dataset, start_size, binary, seed, with_loaders=False):
+    if with_loaders:
+        tmp_loaders_df = pd.read_json(with_loaders)
+        train_idx, val_idx, unlabeled_pool_idx = (
+            tmp_loaders_df["train_idx"][0],
+            tmp_loaders_df["val_idx"][0],
+            tmp_loaders_df["unlabeled_pool_idx"][0],
+        )
+        _, _, _, train_idx, val_idx, unlabel_idx = data_from_index(
+            dataset=dataset,
+            batch_size=4,
+            to_binary=binary,
+            train_idx=train_idx,
+            val_idx=val_idx,
+            unlabeled_pool_idx=unlabeled_pool_idx,
+            seed=seed,
+        )
+    else:
+        _, _, _, train_idx, val_idx, unlabel_idx = train_split(
+            dataset=dataset, train_size=start_size, batch_size=4, to_binary=binary, seed=seed
+        )
     n_start = int(start_size.split("-")[0])
     N = len(train_idx) + len(unlabel_idx)
     start_percent = float(n_start) / float((N - n_start))
@@ -375,6 +393,8 @@ def run_active(
     turn_off_wandb=True,
     Earlystopping_=False,
     testing=False,
+    loaders=False,  # Path to saved loaders if any
+    timeLimit=23,  # In Hours
 ):
     assert model_method in ["BatchNorm", "MCD", "DeepEnsemble", "Laplace"]
     assert (
@@ -383,24 +403,59 @@ def run_active(
         else model_params["enable_pool_dropout"] == True
     )
     # init loaders
-    train_loader, val_loader, unlabeled_loader = None, None, None
-    train_idx, val_idx, unlabeled_pool_idx = None, None, None
+    if loaders:
+        print("Continued Active Training Loop Registered")
+        tmp_loaders_df = pd.read_json(loaders)
+        train_idx, val_idx, unlabeled_pool_idx = (
+            tmp_loaders_df["train_idx"][0],
+            tmp_loaders_df["val_idx"][0],
+            tmp_loaders_df["unlabeled_pool_idx"][0],
+        )
+        (
+            train_loader,
+            val_loader,
+            unlabeled_loader,
+            train_idx,
+            val_idx,
+            unlabeled_pool_idx,
+        ) = data_from_index(
+            dataset=dataset,
+            batch_size=4,
+            to_binary=binary,
+            train_idx=train_idx,
+            val_idx=val_idx,
+            unlabeled_pool_idx=unlabeled_pool_idx,
+            seed=seed,
+        )
+    else:
+        train_loader, val_loader, unlabeled_loader = None, None, None
+        train_idx, val_idx, unlabeled_pool_idx = None, None, None
+
     print(f"Running on device {device}")
     models_list = [
         f"models/{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{torch_seed}_{model_params['enable_pool_dropout']}.pth"
         for torch_seed in torch_seeds
     ]
-    active_df = pd.DataFrame(
-        {"Query_id": [], "labels_added": [], "Train_size": [], "Unlabeled_size": []}, dtype=object
-    )
-    iters_to_run, _, N, n_start, track_progress = how_many_iters(
-        dataset=dataset, start_size=start_size, binary=binary, seed=seed
-    )
 
+    # Needs To Be Adjusted
+    iters_to_run, _, N, n_start, track_progress = how_many_iters(
+        dataset=dataset, start_size=start_size, binary=binary, seed=seed, with_loaders=loaders
+    )
     information_message(models_list, dataset, AcquisitionFunction, seed, torch_seeds, model_method)
 
-    active_df.loc[len(active_df)] = [0, np.asarray([], dtype=object), n_start, N - n_start]
+    if loaders == False:
+        active_df = pd.DataFrame(
+            {"Query_id": [], "labels_added": [], "Train_size": [], "Unlabeled_size": []},
+            dtype=object,
+        )
 
+        active_df.loc[len(active_df)] = [0, np.asarray([], dtype=object), n_start, N - n_start]
+        offset = 0
+    else:
+        active_df = pd.read_json(
+            f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json"
+        )
+        offset = len(active_df) - 1
     MetricsCalulator = CollectMetrics(
         validation=True, device=device, out_ch=model_params["n_classes"]
     )
@@ -408,6 +463,8 @@ def run_active(
     MetricsValidatation = CollectMetrics(
         validation=True, device=device, out_ch=model_params["n_classes"]
     )
+
+    start_time = time.time()
 
     active_train_bar = tqdm(range(iters_to_run))
     for i in active_train_bar:
@@ -436,7 +493,7 @@ def run_active(
                 train_idx=train_idx,
                 val_idx=val_idx,
                 unlabeled_pool_idx=unlabeled_pool_idx,
-                query_id=i,
+                query_id=i + offset,
                 AcquisitionFunction=AcquisitionFunction,
                 model_method=model_method,
                 first_train=first_train,
@@ -559,7 +616,7 @@ def run_active(
                 "IOU": [IOU],
                 "Acc": [Acc],
                 "Soft_Dice": [Soft_Dice],
-                "Query ID": [i],
+                "Query ID": [i + offset],
             }
             arrayify_results(
                 data_to_store=data_to_store,
@@ -589,19 +646,41 @@ def run_active(
         print(f"Adding {','.join(map(str,next_labels))} to the training pool.")
         active_train_bar.set_postfix({"Size training set": f"{len(train_idx)}/{N}"})
         active_df.loc[len(active_df)] = [
-            i + 1,
+            (i + offset) + 1,
             np.asarray(next_labels, dtype=object),
             len(train_idx),
             len(unlabeled_pool_idx),
         ]
         print(active_df)
-        if testing and i == 1:
+
+        current_time = time.time()
+        execution_time = (current_time - start_time) / (60 * 60)  # Execution Time measured in hours
+        if execution_time > timeLimit:
+            print(f"Stopping This Active Train Loop, as time limit is reached")
+            saving_loadera_df = pd.DataFrame(
+                {
+                    "train_idx": [train_idx],
+                    "val_idx": [val_idx],
+                    "unlabeled_pool_idx": [unlabeled_pool_idx],
+                }
+            )
+            saving_loadera_df.to_json(
+                f"results/active_learning/{dataset}_saved_loaders_{model_method}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}.json"
+            )
+            # Save results
+            active_df.to_json(
+                f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json"
+            )
+            break
+
+        # Save results
+        active_df.to_json(
+            f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json"
+        )
+
+        if testing and i + offset == 1:
             print("Breaking Due To 'testing=True'")
             break
-    # Save results
-    active_df.to_json(
-        f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json"
-    )
 
 
 # if __name__ == "__main__":
