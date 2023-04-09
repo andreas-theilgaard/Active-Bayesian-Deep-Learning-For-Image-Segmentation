@@ -300,7 +300,10 @@ def find_next(
     scores = Acq_Func.ApplyAcquisition(
         binarize(torch.sigmoid(predictions)), method=AcquisitionFunction
     )
-    top_values, top_indicies = torch.topk(scores, k=n_items_to_label)
+    if len(unlabeled_pool_idx) < 2:
+        top_values, top_indicies = torch.topk(scores, k=1)
+    else:
+        top_values, top_indicies = torch.topk(scores, k=n_items_to_label)
     next_labels = prediction_idx[top_indicies]
     return next_labels.tolist()
 
@@ -344,6 +347,11 @@ def information_message(models_list, dataset, AcquisitionFunction, seed, torch_s
     if model_method != "BatchNorm":
         print(
             f"{indent} {indent} - Assets/{dataset}/{AcquisitionFunction}_{model_method}_{seed}_{torch_seed}_xxxx_uncertain_yyyy"
+        )
+    if model_method == "DeepEnsemble":
+        print(f"{indent}: JsonFile with metrics specific for deep ensemble\n")
+        print(
+            f"{indent} {indent} - results/active_learning/val_DeepEnsemble_{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}"
         )
 
     print(
@@ -394,6 +402,10 @@ def run_active(
     active_df.loc[len(active_df)] = [0, np.asarray([], dtype=object), n_start, N - n_start]
 
     MetricsCalulator = CollectMetrics(
+        validation=True, device=device, out_ch=model_params["n_classes"]
+    )
+
+    MetricsValidatation = CollectMetrics(
         validation=True, device=device, out_ch=model_params["n_classes"]
     )
 
@@ -518,6 +530,42 @@ def run_active(
                 )
             print("\n#################### Finish Inference Plotting ####################")
 
+        if model_method == "DeepEnsemble":
+            # Run Inference on the validation data
+            images, masks, predictions, prediction_idx = inference(
+                models=models_list,
+                model_params=model_params,
+                data_loader=val_loader,
+                method=model_method,
+                seed=seed,
+                torch_seeds=torch_seeds,
+                dataset=dataset,
+                device=device,
+            )
+            # Get Mean Predictions For Ensemble
+            mean_predictions = torch.mean(torch.sigmoid(predictions), dim=1)
+            mean_predictions = mean_predictions.permute(0, 3, 1, 2)
+            # Calculate Metrics
+            NLL, Brier, ECE, MCE, Dice, IOU, Acc, Soft_Dice = MetricsValidatation.Metrics(
+                mean_predictions, masks
+            )
+            # Store Results
+            data_to_store = {
+                "NLL": [NLL],
+                "Brier": [Brier],
+                "ECE": [ECE],
+                "MCE": [MCE],
+                "Dice": [Dice],
+                "IOU": [IOU],
+                "Acc": [Acc],
+                "Soft_Dice": [Soft_Dice],
+                "Query ID": [i],
+            }
+            arrayify_results(
+                data_to_store=data_to_store,
+                save_path=f"results/active_learning/val_DeepEnsemble_{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}",
+            )
+
         # Run Inference with given Acquisition Function
         next_labels = find_next(
             models=models_list,
@@ -532,6 +580,7 @@ def run_active(
             model_params=model_params,
             n_items_to_label=n_items_to_label,
         )
+
         # Add Label To train pool
         train_idx += next_labels
         # Remove label from train pool

@@ -55,7 +55,7 @@ class ActiveLearningAcquisitions:
         Output:
             JSD Divergence the sum over the height and width of the image
         """
-        predictions = predictions.numpy()
+        predictions = predictions.detach().cpu().numpy()
         consenus_prob = np.mean(predictions, axis=1)
         consenus_prob = np.repeat(consenus_prob, repeats=predictions.shape[1], axis=0).reshape(
             predictions.shape
@@ -83,7 +83,7 @@ class ActiveLearningAcquisitions:
             return torch.tensor(entropy_expected_preds - expected_entropy)
 
         def JSD_pixel(predictions):
-            predictions = predictions.numpy()
+            predictions = predictions.detach().cpu().numpy()
             consenus_prob = np.mean(predictions, axis=1)
             consenus_prob = np.repeat(consenus_prob, repeats=predictions.shape[1], axis=0).reshape(
                 predictions.shape

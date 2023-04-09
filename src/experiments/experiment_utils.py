@@ -3,6 +3,13 @@ import os
 import numpy as np
 
 
+def post_process_ensemble(df):
+    cols = df.columns
+    for col in cols:
+        df[col] = df[col].apply(lambda x: x[0] if isinstance(x, list) else x)
+    return df
+
+
 def post_process(df):
     cols = df.columns
     for col in cols:
