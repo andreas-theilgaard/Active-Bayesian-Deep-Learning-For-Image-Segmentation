@@ -11,9 +11,10 @@ Project Under Development
 TO DO Laplace
 - [ ] Clean Up
 - [ ] Finish Test For Laplace
-- [ ] Test Predictive Variance For Laplace
+- [x] Test Predictive Variance For Laplace
 - [ ] KFAC For Multisetting Using Backpack straight forward
 - [x] Initial Structure and working code for Laplace
+- [ ] Merge into the inference.py function
 
 # Contents
 - [Project Setup](#Project-Setup)

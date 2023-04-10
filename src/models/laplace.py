@@ -73,7 +73,8 @@ class LaplacePredict:
             predictions.append(pred_i.permute(0, 2, 3, 1))
         #
         predictions = torch.stack(predictions, dim=1)
-        ged = 2
+        print(predictions.shape, "yo johny")
+        # ged = 2
         return predictions
 
     def Predict(self, X_val, Sigma, model, W, bias, validate_args=False):
@@ -81,7 +82,7 @@ class LaplacePredict:
             return self.probit_predict(X_val, Sigma, model, W, bias, validate_args)
         elif self.method == "MC":
             return self.MC_predict(X_val, W, bias, Sigma)
-            print("Not Implemented Yet")
+            # print("Not Implemented Yet")
 
 
 # TODO KFAC Laplace
@@ -141,6 +142,83 @@ class Laplace:
 if __name__ == "__main__":
     # Load MAP Model
     import torch
+    from src.models.model import UNET, init_weights
+    from src.data.dataloader import train_split
+
+    model = UNET(in_ch=1, out_ch=1, bilinear_method=False, momentum=0.9)
+    model.load_state_dict(torch.load("models/MAP/PhC-C2DH-U373_100%_21_5_False.pth"))
+    model.to("cpu")
+    model.eval()
+    dataset = "PhC-C2DH-U373"
+    device = "cpu"
+    # Get Data
+    train_loader, val_loader, _, _, _, _ = train_split(
+        train_size="100%", dataset="PhC-C2DH-U373", batch_size=4, to_binary=True, seed=21
+    )
+    train_imgs = []
+    train_targets = []
+    for batch in train_loader:
+        img, mask, _ = batch
+        images, masks, _ = batch
+        images = images.unsqueeze(1) if dataset != "warwick" else images
+        images = images.to(device=device, dtype=torch.float32)
+        masks = masks.type(torch.LongTensor)
+        if model.out_ch > 1:
+            masks = masks.squeeze(1)
+        masks = masks.to(device)
+        train_imgs.append(images)
+        train_targets.append(masks)
+    train_imgs = torch.vstack(train_imgs)
+    train_targets = torch.vstack(train_targets)
+
+    val_imgs = []
+    val_targets = []
+    for batch in val_loader:
+        img, mask, _ = batch
+        images, masks, _ = batch
+        images = images.unsqueeze(1) if dataset != "warwick" else images
+        images = images.to(device=device, dtype=torch.float32)
+        masks = masks.type(torch.LongTensor)
+        if model.out_ch > 1:
+            masks = masks.squeeze(1)
+        masks = masks.to(device)
+        val_imgs.append(images)
+        val_targets.append(masks)
+    val_imgs = torch.vstack(val_imgs)
+    val_targets = torch.vstack(val_targets)
+    print(train_targets.shape)
+    print(val_targets.shape)
+
+    train_predictions = model(train_imgs, features=False)
+    LaplaceFitter = Laplace(
+        model=model,
+        binary=True,
+        Train_Predictions=train_predictions,
+        Train_Target=train_targets.float(),
+        hessian_method=None,
+        method="MC",
+        n_samples=100,
+        prior=1,
+        validate_args=True,
+    )
+    predictions = LaplaceFitter.get_predictions(val_imgs)
+    print(predictions.shape)
+    from src.visualization.viz_tools import viz_batch
+
+    ged = viz_batch(
+        images=val_imgs[0:4],
+        masks=val_targets[0:4],
+        predictions=predictions[0:4],
+        cols=["img", "mask", "pred", "var"],
+        from_logits=True,
+        reduction=True,
+        save_=False,
+        dataset_type="membrane",
+        dataset="PhC-C2DH-U373",
+        save_path=None,
+    )
+
+    ####
 
     # from src.models.model import UNET,init_weights
     # from src.data.dataloader import train_split
