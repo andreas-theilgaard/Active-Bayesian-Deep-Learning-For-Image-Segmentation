@@ -89,7 +89,7 @@ target/
 
 # Mypy cache
 .mypy_cache/
-
+.png
 # Ignore these folders for now
 /Thesis/
 /Project Plan/
@@ -104,5 +104,7 @@ target/
 /results/active_learning/*.json
 *outputs
 *.png
-*.json
+*.pt
 *.pth
+*.sh
+*.json

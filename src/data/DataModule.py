@@ -47,10 +47,12 @@ class SegmentationData(Dataset):
             image = Image.open(img_path).convert("RGB")
         mask = Image.open(mask_path)
 
-        image = image.resize((self.img_height, self.img_width), resample=Image.BICUBIC)  # BILINEAR
+        image = image.resize(
+            (self.img_height, self.img_width), resample=Image.Resampling.BICUBIC
+        )  # Image.BICUBIC
         mask = mask.resize(
-            (self.img_height, self.img_width), resample=Image.NEAREST
-        )  # BILINEAR,NEAREST
+            (self.img_height, self.img_width), resample=Image.Resampling.NEAREST
+        )  # BILINEAR,NEAREST,     Image.NEAREST
 
         image = np.array(image)
         mask = np.array(mask, dtype=np.int64)
@@ -69,4 +71,4 @@ class SegmentationData(Dataset):
                 image = image.permute(2, 0, 1)
         image = image / 255
         mask = torch.tensor(mask)
-        return (image, mask)
+        return (image, mask, idx)

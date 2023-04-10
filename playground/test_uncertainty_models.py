@@ -6,6 +6,23 @@ from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
 
 
+class EarlyStopping:
+    def __init__(self, tolerance=15, best_val_loss=np.inf):
+        self.tolerance = tolerance
+        self.counter = 0
+        self.early_stop = False
+        self.best_val_loss = best_val_loss
+
+    def __call__(self, validation_loss):
+        if validation_loss < self.best_val_loss:
+            self.counter = 0
+            self.best_val_loss = validation_loss
+        else:
+            self.counter += 1
+        if self.counter >= self.tolerance:
+            self.early_stop = True
+
+
 def toy_data(n_samples=500):
     np.random.seed(0)
     X = np.random.normal(size=(n_samples, 1)).reshape(-1, 1)
@@ -81,12 +98,12 @@ def train(enable_dropout_var=False, n_samples=500, epochs=100, device="cpu", see
     model.to(device)
     criterion = nn.MSELoss().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    EarlyStopper = EarlyStopping(tolerance=15)
     torch.manual_seed(seed)
-    global_loss_vec = []
-    Early_Stopping = EarlyStopping(10, 0.005)
 
+    train_loss_global = []
     for _ in tqdm(range(epochs)):
-        loss_vec = []
+        train_loss_local = []
         for batch in train_data:
             X, y = batch
             X = X.to(device)
@@ -96,15 +113,18 @@ def train(enable_dropout_var=False, n_samples=500, epochs=100, device="cpu", see
             loss = criterion(pred.squeeze(1), y)
             loss.backward()
             optimizer.step()
-            loss_vec.append(loss.item())
-        mean_loss = torch.mean(torch.tensor(loss_vec)).item()
-        global_loss_vec.append(mean_loss)
-        if Early_Stopping(mean_loss):
-            print(f"Stopped Training Due To No Improvement, epoch {_+1}")
+            train_loss_local.append(loss.item())
+        local_mean_loss = torch.tensor(train_loss_local).mean().item()
+        train_loss_global.append(local_mean_loss)
+        EarlyStopper(local_mean_loss)
+        # print(train_loss_global)
+        if EarlyStopper.early_stop:
+            print("Now we stop")
             break
-    plt.plot(global_loss_vec)
-    plt.show()
-    torch.save(model.state_dict(), f"tests/train_reg_model_{seed}.pt")
+
+    torch.save(model.state_dict(), f"playground/train_reg_model_{seed}.pt")
+    model.eval()
+    print(f"Predictions in train loop {model(torch.tensor([[0.3],[0.7896]]))}")
 
 
 def enable_dropout(model):
@@ -121,9 +141,10 @@ def deep_ensemble_predict(seeds, n_samples=500, device="cpu"):
     y = torch.tensor(y, dtype=torch.float32).to(device)
     for i in range(len(seeds)):
         model = NN()
-        model.load_state_dict(torch.load(f"tests/train_reg_model_{seeds[i]}.pt"))
+        model.load_state_dict(torch.load(f"playground/train_reg_model_{seeds[i]}.pt"))
         model.to(device)
         model.eval()
+        print(f"Predictions in deep_ensemvle loop {model(torch.tensor([[0.3],[0.7896]]))}")
         with torch.no_grad():
             predictions = model(X)
             predictions = predictions.detach().cpu().numpy()
@@ -137,37 +158,8 @@ def deep_ensemble_predict(seeds, n_samples=500, device="cpu"):
     plt.show()
 
 
-# def MC_predict(
-#     mc_samples=50, n_samples=500, model_path="tests/train_reg_model_10.pt", device="cpu"
-# ):
-#     torch.manual_seed(10)
-#     model = NN(enable_dropout=True)
-#     model.load_state_dict(torch.load(model_path))
-#     model.to(device)
-#     model.eval()
-#     model.apply(enable_dropout)
-#     X, y = toy_data(n_samples=n_samples)
-#     X = torch.tensor(X, dtype=torch.float32).reshape(-1, 1).to(device)
-#     y = torch.tensor(y, dtype=torch.float32).to(device)
-
-#     preds_array = np.zeros((n_samples, mc_samples))
-#     for i in range(mc_samples):
-#         with torch.no_grad():
-#             predictions = model(X)
-#             predictions = predictions.detach().cpu().numpy()
-#             predictions = predictions.ravel()
-#             preds_array[:, i] = predictions
-#     print(preds_array)
-#     print(preds_array[:, i].shape)
-#     print(f"RMSE: {mean_squared_error(y,np.mean(preds_array,axis=1))}")
-#     plt.plot(X[:, 0], y, "r.")
-#     for i in range(mc_samples):
-#         plt.plot(X[:, 0], preds_array[:, i], "b.", alpha=1 / 200)
-#     plt.show()
-
-
 def MC_predict(
-    mc_samples=50, n_samples=500, model_path="tests/train_reg_model_10.pt", device="cpu"
+    mc_samples=50, n_samples=500, model_path="playground/train_reg_model_10.pt", device="cpu"
 ):
     torch.manual_seed(10)
     model = NN(enable_dropout=True)
@@ -181,6 +173,7 @@ def MC_predict(
     # for i in range(mc_samples):
     with torch.no_grad():
         model.eval()
+        print(f"Predictions in MC_predict loop {model(torch.tensor([[0.3],[0.7896]]))}")
         model.apply(enable_dropout)
         for i in range(mc_samples):
             predictions = model(X)
@@ -196,8 +189,8 @@ def MC_predict(
     plt.show()
 
 
-# type_ = "DE"
-type_ = "MCD"
+type_ = "DE"
+# type_ = "MCD"
 
 if __name__ == "__main__":
     if type_ == "DE":

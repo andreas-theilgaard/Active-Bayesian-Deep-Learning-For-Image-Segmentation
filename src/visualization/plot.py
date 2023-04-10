@@ -30,7 +30,9 @@ def mask_to_class_channel(mask, n_classes):
     return mask
 
 
-def plot_prediction_batch(images, masks, predictions, save_, dataset_type="membrane", dataset=None):
+def plot_prediction_batch(
+    images, masks, predictions, save_, dataset_type="membrane", dataset=None, save_path=None
+):
     assert images.shape[0] == masks.shape[0]
     assert masks.shape[0] == predictions.shape[0]
     plt.close("all")  # close plot windows, so they don't take up space
@@ -83,10 +85,6 @@ def plot_prediction_batch(images, masks, predictions, save_, dataset_type="membr
             axes[i, 2].imshow(pred_mask, cmap="viridis")
             axes[i, 2].axis("off")
     if save_:
-        fig.savefig("pred.png", dpi=1000)
+        print(f"{save_path}_predictions.png")
+        fig.savefig(f"{save_path}.png", dpi=1000)
     return fig
-    # plt.show()
-    # if from_=="train":
-    #    plt.savefig('ged/train.png')
-    # elif from_=="val":
-    #    plt.savefig("ged/val.png")
