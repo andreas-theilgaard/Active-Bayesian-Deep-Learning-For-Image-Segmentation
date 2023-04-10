@@ -185,12 +185,12 @@ class UNET(nn.Module):
 
         # Output
         if linear_last_layer:
-            self.out = nn.Linear(64, out_ch, bias=True)
+            self.out = nn.Linear(64, out_ch, bias=False)
             if conv_weight_init:
                 weight_param, bias_param = Conv_init_weights(out_ch)
-                weight_param, bias_param = torch.load(
-                    "weights/weights_out_seed261.pth"
-                ), torch.load("weights/bias_out_seed261.pth")
+                # weight_param, bias_param = torch.load(
+                #    "weights/weights_out_seed261.pth"
+                # ), torch.load("weights/bias_out_seed261.pth")
                 with torch.no_grad():
                     self.out.weight.copy_(weight_param.view(self.out.weight.shape))
             #        self.out.bias.copy_(bias_param.view(self.out.bias.shape))
@@ -214,7 +214,7 @@ class UNET(nn.Module):
             # tmp = up4.reshape(up4.shape[0],-1)
             # output = self.out(tmp)
             output = self.out(up4.permute(0, 3, 2, 1)).permute(0, 3, 2, 1)
-            output = output.reshape(output.shape[0], 1, 64, 64)
+            output = output.reshape(output.shape[0], 2, 64, 64)
         else:
             output = self.out(up4)
         return output

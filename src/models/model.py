@@ -165,7 +165,7 @@ class UNET(nn.Module):
         # Output
         self.out = nn.Conv2d(64, out_ch, kernel_size=1, bias=True)
 
-    def forward(self, x):
+    def forward(self, x, features=False):
         encode1 = self.init(x)
         encode2 = self.Encode1(encode1)
         encode3 = self.Encode2(encode2)
@@ -178,6 +178,8 @@ class UNET(nn.Module):
         up4 = self.Decode4(up3, encode1)
 
         # output
+        if features:
+            return up4
         output = self.out(up4)
         return output
 
