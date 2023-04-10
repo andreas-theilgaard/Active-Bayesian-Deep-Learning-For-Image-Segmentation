@@ -153,5 +153,5 @@ def test_accquisition_JSD():
         assert abs(torch.sum((jsd_pixel.sum(dim=(1, 2)) - JSD_values)).item()) < 0.0001
 
 
-if __name__ == "__main__":
-    test_accquisition_BALD()
+# if __name__ == "__main__":
+#     test_accquisition_BALD()

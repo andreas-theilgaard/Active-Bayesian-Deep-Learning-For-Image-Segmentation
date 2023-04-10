@@ -74,7 +74,3 @@ def test_calibration_metrics():
                 [0.34668129682540894, 0.10216283053159714, 0.0510956967915845, 0.12541159082632425]
             ),
         )
-
-
-if __name__ == "__main__":
-    test_calibration_metrics()

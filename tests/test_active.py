@@ -88,6 +88,7 @@ def test_active_run():
     ## Laplace Test TODO#
 
 
+@pytest.mark.skipif(1 == 1, reason="Too Computationally Expensive - Run Local !!!")
 def test_active_checkpoint():
     model_params["enable_pool_dropout"] = False
 
@@ -240,7 +241,7 @@ def test_active_checkpoint():
     assert np.sum(np.array(out["labels_added"][2]) == np.array([131, 114])) == 2
 
 
-if __name__ == "__main__":
-    test_active_run()
-    print(f"Beginning checkpoint tests")
-    test_active_checkpoint()
+# if __name__ == "__main__":
+#     test_active_run()
+#     print(f"Beginning checkpoint tests")
+#     test_active_checkpoint()

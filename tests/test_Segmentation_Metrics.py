@@ -131,7 +131,3 @@ def test_segmentation_metrics():
     assert IOU == IOU_T
     assert Acc == Acc_T
     assert Soft_Dice == Soft_Dice_T
-
-
-if __name__ == "__main__":
-    test_segmentation_metrics()

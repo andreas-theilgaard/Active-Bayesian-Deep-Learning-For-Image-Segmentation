@@ -224,6 +224,7 @@ def test_how_many_classes():
         assert len(uniq_classes) == Config.n_classes[dataset]
 
 
+@pytest.mark.skipif(not os.path.exists("data/raw/membrane"), reason="Data files not found")
 def test_active_start():
     all_datasets = list(Config.datasets)
     for dataset in all_datasets:
@@ -251,8 +252,3 @@ def test_active_start():
                 assert (np.size(train_idx) + np.size(val_idx) + np.size(unlabel_idx)) == len(
                     [x for x in os.listdir(f"data/raw/{dataset}/image") if x != ".DS_Store"]
                 )
-
-
-# if __name__=='__main__':
-#     #test_active_start()
-#     test_data_idx()
