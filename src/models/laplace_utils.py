@@ -493,16 +493,6 @@ def predict_binary(test_loader, model, n_samples=100, return_targets=False, delt
 
 ##################################################################################################
 ##################################################################################################
-
-
-def optimize_prior():  # with marginal likelihood
-    pass
-
-
-def marginal_likelihood():
-    pass
-
-
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
@@ -525,6 +515,19 @@ def negative_log_posterior(prior, W, predictions, target, binary=True):
     nlp = (1 / 2) * (W.flatten() @ P @ W.flatten())
     return nll + nlp
 
+def optimize_prior(prior_prec,W,predictions,target,binary=True,n_steps=500):
+    log_prior_prec = prior_prec.log()
+    log_prior_prec.requires_grad = True
+    optimizer = torch.optim.Adam([log_prior_prec], lr=1e-1)
+    for _ in range(n_steps):
+        optimizer.zero_grad()
+        prior_prec = log_prior_prec.exp()
+        neg_log_marglik = -negative_log_posterior(prior=prior_prec,W=W,predictions=predictions,target=target,binary=binary)
+        neg_log_marglik.backward()
+        optimizer.step()
+    prior_prec = log_prior_prec.detach().exp()
+    return prior_prec
+
 
 def compute_covariance(prior, W, predictions, target, binary=True):
     loss = negative_log_posterior(prior, W, predictions, target, binary)
@@ -544,3 +547,4 @@ def prepare_batch_data(batch, out_ch=1, device="cpu", dataset="warwick"):
         masks = masks.squeeze(1)
     masks = masks.to(device)
     return images, masks
+

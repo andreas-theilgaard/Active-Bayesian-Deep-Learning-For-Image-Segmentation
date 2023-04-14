@@ -4,7 +4,7 @@ from src.data.dataloader import train_split
 import torch.nn.functional as F
 import numpy as np
 from math import *
-from src.models.laplace_utils import exact_hessian, compute_covariance
+from src.models.laplace_utils import exact_hessian, compute_covariance,optimize_prior
 from torch.distributions.multivariate_normal import MultivariateNormal
 from backpack import extend, backpack, extensions
 
@@ -117,13 +117,14 @@ class Laplace:
         self.W = Weights_Last_Layer[0]
         self.bias = Weights_Last_Layer[1]
 
-    def optimize_prior_precision():
-        pass
 
     def get_predictions(self, X_val):
         # Optimzie Prior Precision Here
+        opt_prior = optimize_prior(prior_prec=self.prior,W=self.W,predictions=self.Train_Predictions,target=self.Train_Target,binary=self.binary,n_steps=500)
+        opt_log_prior = opt_prior.log()
+        # Get Variance-Covariance matrix
         Sigma = compute_covariance(
-            prior=self.prior,
+            prior=opt_log_prior,
             W=self.W,
             predictions=self.Train_Predictions,
             target=self.Train_Target,
