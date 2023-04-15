@@ -10,7 +10,6 @@ from torch import cat, zeros, stack
 from math import *
 import random
 import pytest
-
 from src.models.laplace_utils import exact_hessian
 from backpack import extend, backpack, extensions
 from torch.distributions.multivariate_normal import MultivariateNormal
