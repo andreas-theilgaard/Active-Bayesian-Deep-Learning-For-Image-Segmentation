@@ -5,8 +5,8 @@ from src.config import find_best_device
 
 # seeds: [21, 4, 7, 9, 12]
 parser = argparse.ArgumentParser(description="Training arguments")
-parser.add_argument("--device", default="cpu")  # find_best_device
-parser.add_argument("--epochs", default=2)
+parser.add_argument("--device", default=find_best_device())  # find_best_device
+parser.add_argument("--epochs", default=100)
 parser.add_argument("--seed", default=21)
 parser.add_argument("--dataset", default="PhC-C2DH-U373")
 parser.add_argument("--start_size", default="2-Samples")

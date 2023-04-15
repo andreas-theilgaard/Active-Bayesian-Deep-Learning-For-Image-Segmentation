@@ -685,6 +685,8 @@ def run_active(
             print("Breaking Due To 'testing=True'")
             break
 
+    print(f"Execution time was {execution_time} hours")
+
 
 # if __name__ == "__main__":
 #     model_params = {
