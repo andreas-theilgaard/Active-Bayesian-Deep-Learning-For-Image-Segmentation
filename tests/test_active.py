@@ -85,7 +85,27 @@ def test_active_run():
     assert np.sum(np.array(out["labels_added"][1]) == np.array([47, 91])) == 2
     assert np.sum(np.array(out["labels_added"][2]) == np.array([131, 114])) == 2
 
-    ## Laplace Test TODO#
+    ## Laplace Test #
+    model_params["enable_pool_dropout"] = True
+    AcquisitionFunction = "ShanonEntropy"
+    model_method = "Laplace"
+    torch_seeds = [17]
+    run_active(
+        model_params=model_params,
+        dataset="PhC-C2DH-U373",
+        epochs=3,
+        start_size="2-Samples",
+        model_method=model_method,
+        AcquisitionFunction=AcquisitionFunction,
+        torch_seeds=torch_seeds,
+        seed=seed,
+        testing=True,
+    )
+    out = pd.read_json(
+        f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json"
+    )
+    assert np.sum(np.array(out["labels_added"][1]) == np.array([47, 140])) == 2
+    assert np.sum(np.array(out["labels_added"][2]) == np.array([131, 4])) == 2
 
 
 @pytest.mark.skipif(1 == 1, reason="Too Computationally Expensive - Run Local !!!")
@@ -240,8 +260,51 @@ def test_active_checkpoint():
     assert np.sum(np.array(out["labels_added"][1]) == np.array([84, 47])) == 2
     assert np.sum(np.array(out["labels_added"][2]) == np.array([131, 114])) == 2
 
+    ## Laplace Test #
+    model_params["enable_pool_dropout"] = True
+    AcquisitionFunction = "ShanonEntropy"
+    model_method = "Laplace"
+    torch_seeds = [17]
+    run_active(
+        model_params=model_params,
+        dataset="PhC-C2DH-U373",
+        epochs=3,
+        start_size="2-Samples",
+        model_method=model_method,
+        AcquisitionFunction=AcquisitionFunction,
+        torch_seeds=torch_seeds,
+        seed=seed,
+        testing=True,
+        loaders=False,  # Path to saved loaders if any
+        timeLimit=1 / 10000,
+    )
+    out = pd.read_json(
+        f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json"
+    )
+    assert np.sum(np.array(out["labels_added"][1]) == np.array([47, 140])) == 2
+    # Continue Traning
+    run_active(
+        model_params=model_params,
+        dataset="PhC-C2DH-U373",
+        epochs=3,
+        start_size="2-Samples",
+        model_method=model_method,
+        AcquisitionFunction=AcquisitionFunction,
+        torch_seeds=torch_seeds,
+        seed=seed,
+        testing=True,
+        first_train=False,
+        loaders=f"results/active_learning/{dataset}_saved_loaders_{model_method}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}.json",
+        timeLimit=1 / 10000,
+    )
+    out = pd.read_json(
+        f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json"
+    )
+    assert np.sum(np.array(out["labels_added"][1]) == np.array([47, 140])) == 2
+    assert np.sum(np.array(out["labels_added"][2]) == np.array([131, 4])) == 2
 
-# if __name__ == "__main__":
-#     test_active_run()
-#     print(f"Beginning checkpoint tests")
-#     test_active_checkpoint()
+
+if __name__ == "__main__":
+    test_active_run()
+    print(f"Beginning checkpoint tests")
+    test_active_checkpoint()

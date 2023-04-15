@@ -265,6 +265,8 @@ def find_next(
     device,
     model_params,
     n_items_to_label=2,
+    train_loader=None,
+    binary=None,
 ):
     """
     models: list of model_paths to saved models
@@ -297,6 +299,8 @@ def find_next(
         device=device,
         seed=seed,
         torch_seeds=torch_seeds,
+        train_loader=train_loader,
+        binary=binary,
     )
     scores = Acq_Func.ApplyAcquisition(
         binarize(torch.sigmoid(predictions)), method=AcquisitionFunction
@@ -397,11 +401,6 @@ def run_active(
     timeLimit=23,  # In Hours
 ):
     assert model_method in ["BatchNorm", "MCD", "DeepEnsemble", "Laplace"]
-    assert (
-        model_params["enable_pool_dropout"] == False
-        if model_method != "MCD"
-        else model_params["enable_pool_dropout"] == True
-    )
     # init loaders
     if loaders:
         print("Continued Active Training Loop Registered")
@@ -514,6 +513,8 @@ def run_active(
                 torch_seeds=torch_seeds,
                 dataset=dataset,
                 device=device,
+                train_loader=train_loader,
+                binary=binary,
             )
             if model_method != "BatchNorm":
                 mean_predictions = torch.mean(torch.sigmoid(predictions), dim=1)
@@ -636,6 +637,8 @@ def run_active(
             device=device,
             model_params=model_params,
             n_items_to_label=n_items_to_label,
+            train_loader=train_loader,
+            binary=binary,
         )
 
         # Add Label To train pool

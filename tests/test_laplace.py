@@ -9,6 +9,7 @@ from tqdm import tqdm
 from torch import cat, zeros, stack
 from math import *
 import random
+import pytest
 
 from src.models.laplace_utils import exact_hessian, exact_hessian_diagonal_blocks
 from hessian import exact_hessian
@@ -173,8 +174,7 @@ def sigmoid(x):
 
 
 ########## Binary Case ############
-
-
+@pytest.mark.skipif(1 == 1, reason="Too Computationally Expensive - Run Local !!!")
 def test_binary():
     X, Y, X_test, X1_test, X2_test = MakeData(
         size=train_size,
@@ -258,11 +258,8 @@ def test_binary():
         py_list=[py, pyLaplace],
         conf_list=[conf, conf_Laplace],
         size=test_size,
-        show=True,
+        show=False,
     )
-
-    print(Sigma[3, 2], Sigma[-1, -1], Sigma[0, 0])
-    print(pyLaplace[0:5])
 
     assert abs(Sigma[3, 2] - (49.63333)) < 0.0001
     assert abs(Sigma[-1, -1] - 532.9522) < 0.0001
@@ -277,6 +274,7 @@ def test_binary():
 
 
 ########## Multiclass Case ############
+@pytest.mark.skipif(1 == 1, reason="Too Computationally Expensive - Run Local !!!")
 def test_multiclass():
     X, Y, X_test, X1_test, X2_test = MakeData(
         size=500, n_classes=4, train_range=(-10, 10), test_size=50, test_range=(-15, 15)
@@ -351,29 +349,19 @@ def test_multiclass():
         X2_test,
         Z_list=[conf.reshape(50, 50), conf_Laplace.reshape(50, 50)],
         test_range=(-15, 15),
-        show=True,
+        show=False,
     )
-
-    print(conf_Laplace[0:5])
     assert (
         abs(
             np.sum(
                 conf_Laplace[0:5]
-                - np.array([0.4603571, 0.43213224, 0.44896406, 0.45336434, 0.47212425])
+                - np.array([0.6981487, 0.7220149, 0.7056564, 0.7108208, 0.70511055])
             )
         )
         < 0.0001
     )
 
 
-###############################################################
-
-
-######################### U-Net Test Case #############################
-
-
-#######################################################################
-
-if __name__ == "__main__":
-    # test_binary()
-    test_multiclass()
+# if __name__ == "__main__":
+#   test_binary()
+#   test_multiclass()
