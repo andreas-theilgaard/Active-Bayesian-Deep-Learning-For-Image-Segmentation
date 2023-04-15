@@ -250,10 +250,21 @@ def viz_data(
                 axes[j, i].set_title(label, fontsize=18, weight="bold")
             if i == 0:
                 axes[j, i].set_ylabel("Image" if j == 0 else "Label")
-            if j == 1:
-                axes[j, i].set_xlabel(f"{n_classes[label] if not binarize else 2} classes")
+            # if j == 1:
+            #    axes[j, i].set_xlabel(f"{n_classes[label] if not binarize else 2} classes")
             axes[j, i].imshow(img)
     if save_:
-        plt.savefig("Thesis/assets/initial_viz_data.png", dpi=styles.dpi_level)
+        plt.savefig("Thesis/assets/initial_viz_data_multiclass.png", dpi=styles.dpi_level)
     if show:
         plt.show()
+
+
+if __name__ == "__main__":
+    viz_data(
+        sample=False,
+        binarize=False,
+        save_=True,
+        show=False,
+        raw_path="data/raw",
+        indices={"warwick": 276, "DIC_C2DH_Hela": 38, "PhC-C2DH-U373": 100, "membrane": 152},
+    )

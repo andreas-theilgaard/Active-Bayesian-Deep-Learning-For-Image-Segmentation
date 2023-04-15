@@ -8,6 +8,14 @@ Active Bayesian Deep Learning For Image Segmentation
 
 Project Under Development
 
+TO DO Laplace
+- [ ] Clean Up
+- [ ] Finish Test For Laplace
+- [x] Test Predictive Variance For Laplace
+- [ ] KFAC For Multisetting Using Backpack straight forward
+- [x] Initial Structure and working code for Laplace
+- [ ] Merge into the inference.py function
+
 # Contents
 - [Project Setup](#Project-Setup)
 - [Adding A New Dataset](#adding-a-new-dataset)
