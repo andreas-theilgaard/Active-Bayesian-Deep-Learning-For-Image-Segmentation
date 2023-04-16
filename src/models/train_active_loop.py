@@ -588,7 +588,7 @@ def run_active(
                 )
             print("\n#################### Finish Inference Plotting ####################")
 
-        if model_method == "DeepEnsemble":
+        if model_method in ["DeepEnsemble", "Laplace", "MCD"]:
             # Run Inference on the validation data
             images, masks, predictions, prediction_idx = inference(
                 models=models_list,
@@ -621,7 +621,7 @@ def run_active(
             }
             arrayify_results(
                 data_to_store=data_to_store,
-                save_path=f"results/active_learning/val_DeepEnsemble_{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}",
+                save_path=f"results/active_learning/VALPredictions_{dataset}_{model_method}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}",
             )
 
         # Run Inference with given Acquisition Function
