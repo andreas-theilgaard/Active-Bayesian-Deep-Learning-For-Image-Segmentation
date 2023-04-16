@@ -119,7 +119,7 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-def negative_log_posterior(prior, W, predictions, target, binary=True):
+def negative_log_posterior(prior, W, predictions, target, device, binary=True):
     """
     input:
         prior: is the prior variance, which is to be optimized for
@@ -133,26 +133,30 @@ def negative_log_posterior(prior, W, predictions, target, binary=True):
     else:
         nll = F.softmax(predictions, target, reduction="sum")
     # negative log prior is given by:
-    P = (1 / prior) * torch.eye(W.numel())  # log prior in diagonal
+    diag = torch.eye(W.numel()).to(device=device)
+    P = (1 / prior) * diag  # log prior in diagonal
     nlp = (1 / 2) * (W.flatten() @ P @ W.flatten())
-    return nll + nlp
+    return nll.cpu() + nlp
 
 
-def log_marginal_likelihood(prior, W):
+def log_marginal_likelihood(prior, W, device):
     # prior.requires_grad = True
-    P = (1 / prior) * torch.eye(W.numel())  # log prior in diagonal
+    diag = torch.eye(W.numel()).to(device=device)
+    P = (1 / prior) * diag  # log prior in diagonal
     nlp = -(1 / 2) * (W.flatten() @ P @ W.flatten())
     return nlp
 
 
-def optimize_prior(prior_prec, W, n_steps=100):
+def optimize_prior(prior_prec, W, device, n_steps=100):
     log_prior_prec = prior_prec.log()
     log_prior_prec.requires_grad = True
     optimizer = torch.optim.Adam([log_prior_prec], lr=1e-1)
     for _ in range(n_steps):
         optimizer.zero_grad()
         prior_prec = log_prior_prec.exp()
-        neg_log_marglik = log_marginal_likelihood(prior=prior_prec, W=W)  # nll is constant at MAP
+        neg_log_marglik = log_marginal_likelihood(
+            prior=prior_prec, W=W, device=device
+        )  # nll is constant at MAP
         neg_log_marglik.backward()
         optimizer.step()
 
@@ -160,8 +164,8 @@ def optimize_prior(prior_prec, W, n_steps=100):
     return prior_prec
 
 
-def compute_covariance(prior, W, predictions, target, binary=True):
-    loss = negative_log_posterior(prior, W, predictions, target, binary)
+def compute_covariance(prior, W, predictions, target, device, binary=True):
+    loss = negative_log_posterior(prior, W, predictions, target, device, binary)
     # Compute Hessian
     Hes = exact_hessian(loss, [W])
     # The Variance-Covariance Matrix is the Inverse Hessian

@@ -19,7 +19,7 @@ dataset = "PhC-C2DH-U373"
 @pytest.mark.skipif(1 == 1, reason="Too Computationally Expensive - Run Local !!!")
 def test_active_run():
     seed = 261
-    # Random Test #
+    # # Random Test #
     AcquisitionFunction = "Random"
     model_method = "BatchNorm"
     torch_seeds = [17]
@@ -100,6 +100,7 @@ def test_active_run():
         torch_seeds=torch_seeds,
         seed=seed,
         testing=True,
+        device="cpu",
     )
     out = pd.read_json(
         f"results/active_learning/{dataset}_{AcquisitionFunction}_{seed}_{','.join(map(str,torch_seeds))}_{model_method}.json"

@@ -48,14 +48,14 @@ class LaplacePredict:
         predictive = predictive.reshape(phi.shape[0], 1, 64, 64)
         return predictive
 
-    def MC_predict(self, X_val, Sigma, model, W, bias):
+    def MC_predict(self, X_val, Sigma, model, W, bias, device):
         """
         Returns:
             predictions: [batch_size,n_samples,img_height,img_width,n_classes]
         """
         with torch.no_grad():
             phi = model(X_val, features=True)  # Features Before Last Layer
-        Sigma = torch.tensor(Sigma)
+        Sigma = torch.tensor(Sigma).to(device=device)
         posterior_distribution = MultivariateNormal(W.flatten(), Sigma)
         # Sample From Posterior n times
 
@@ -70,11 +70,11 @@ class LaplacePredict:
         predictions = torch.stack(predictions, dim=1)
         return predictions
 
-    def Predict(self, X_val, Sigma, model, W, bias, validate_args=False):
+    def Predict(self, X_val, Sigma, model, W, bias, device, validate_args=False):
         if self.method == "Probit":
             return self.probit_predict(X_val, Sigma, model, W, bias, validate_args)
         elif self.method == "MC":
-            return self.MC_predict(X_val, Sigma, model, W, bias)
+            return self.MC_predict(X_val, Sigma, model, W, bias, device=device)
 
 
 class Laplace:
@@ -91,6 +91,7 @@ class Laplace:
         device=None,
         dataset=None,
     ):
+        self.device = device
         self.dataset = dataset
         self.model = model
         self.binary = binary
@@ -98,9 +99,8 @@ class Laplace:
         self.hessian_method = hessian_method
         self.method = method
         self.n_samples = n_samples
-        self.prior = prior
+        self.prior = prior.to(device=self.device)
         self.validate_args = validate_args
-        self.device = device
 
         self.opt_prior = None
         self.Sigma = None  # Variance-Covariance Matrix
@@ -144,7 +144,9 @@ class Laplace:
         return predictions
 
     def optimize_prior(self, n_steps=100):
-        self.opt_prior = optimize_prior(prior_prec=self.prior, W=self.W, n_steps=n_steps)
+        self.opt_prior = optimize_prior(
+            prior_prec=self.prior, W=self.W, device=self.device, n_steps=n_steps
+        ).to(device=self.device)
 
     def get_covariance(self):
         if (
@@ -158,6 +160,7 @@ class Laplace:
             W=self.W,
             predictions=self.Train_Predictions,
             target=self.Train_Target,
+            device=self.device,
             binary=self.binary,
         )
         self.Sigma = Sigma
@@ -180,6 +183,7 @@ class Laplace:
             model=self.model,
             W=self.W,
             bias=self.bias,
+            device=self.device,
             validate_args=self.validate_args,
         )
         return (val_imgs, val_masks, predictions, prediction_idx)
