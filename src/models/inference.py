@@ -65,7 +65,7 @@ def inference(
                 hessian_method="Exact",
                 method="MC",
                 n_samples=n_forward_passes,
-                prior=torch.tensor(1),
+                prior=torch.tensor(1.0),
                 validate_args=False,
                 device=device,
                 dataset=dataset,
