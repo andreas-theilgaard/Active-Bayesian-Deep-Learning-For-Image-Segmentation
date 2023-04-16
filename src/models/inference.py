@@ -209,9 +209,7 @@ def inference(
         ensemble = torch.stack(ensemble, dim=1)
         assert sum(
             torch.tensor(list(ensemble.shape)).eq(
-                torch.tensor(
-                    [masks.shape[0], len(models), masks.shape[1], masks.shape[2], model.out_ch]
-                )
+                torch.tensor([masks.shape[0], 5, masks.shape[1], masks.shape[2], model.out_ch])
             )
         ) == len(ensemble.shape)
         return (images, masks, ensemble, prediction_idx)
