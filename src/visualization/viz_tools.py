@@ -149,7 +149,6 @@ def viz_batch(
     else:
         mean_prediction = predictions.squeeze(1)
         mean_prediction = (mean_prediction > 0.5).float()
-
     error = (~masks.eq(mean_prediction)).float()
 
     if "pred" in cols:
@@ -222,10 +221,17 @@ def viz_data(
     n_classes = Config.n_classes
     fig, axes = plt.subplots(2, 4)
     fig.set_size_inches(11, 6)
+    title_mapper = {
+        "DIC_C2DH_Hela": "DIC-Hela",
+        "PhC-C2DH-U373": "PhC-U373",
+        "membrane": "Membrane",
+        "warwick": "GlaS",
+    }
 
     for i, dataset in enumerate(datasets):
         label = dataset.split("/")[-1]
         for j, folder in enumerate(["image", "label"]):
+
             files = glob.glob(os.path.join(f"{raw_path}/{dataset}/{folder}", "*"))
             idx = (
                 indices[label] if not sample else (random.randint(0, len(files)) if j == 0 else idx)
@@ -247,14 +253,12 @@ def viz_data(
             axes[j, i].set_yticklabels([])
             axes[j, i].set_xticklabels([])
             if j == 0:
-                axes[j, i].set_title(label, fontsize=18, weight="bold")
+                axes[j, i].set_title(title_mapper[label], fontsize=18, weight="bold")
             if i == 0:
                 axes[j, i].set_ylabel("Image" if j == 0 else "Label")
-            # if j == 1:
-            #    axes[j, i].set_xlabel(f"{n_classes[label] if not binarize else 2} classes")
             axes[j, i].imshow(img)
     if save_:
-        plt.savefig("Thesis/assets/initial_viz_data_multiclass.png", dpi=styles.dpi_level)
+        plt.savefig("Thesis/assets/initial_viz_data_binary_real.png", dpi=300, bbox_inches="tight")
     if show:
         plt.show()
 
@@ -262,9 +266,9 @@ def viz_data(
 if __name__ == "__main__":
     viz_data(
         sample=False,
-        binarize=False,
+        binarize=True,
         save_=True,
-        show=False,
+        show=True,
         raw_path="data/raw",
         indices={"warwick": 276, "DIC_C2DH_Hela": 38, "PhC-C2DH-U373": 100, "membrane": 152},
     )

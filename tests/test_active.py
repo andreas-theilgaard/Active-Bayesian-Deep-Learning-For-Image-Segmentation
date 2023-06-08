@@ -307,5 +307,5 @@ def test_active_checkpoint():
 
 if __name__ == "__main__":
     test_active_run()
-    print(f"Beginning checkpoint tests")
-    test_active_checkpoint()
+    # print(f"Beginning checkpoint tests")
+    # test_active_checkpoint()
