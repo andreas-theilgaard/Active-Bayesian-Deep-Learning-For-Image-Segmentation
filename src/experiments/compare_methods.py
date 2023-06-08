@@ -34,13 +34,6 @@ args.number_iters = int(args.number_iters)
 args.epochs = int(args.epochs)
 args.save_path = f"results/{args.save_path}"
 
-############## Setting Up Weights & Biases ###############
-# bash_cmd = f"wandb login 82a3b5a7b8ff626de2d5ae45becdac5fa040d0f7"
-# process = subprocess.Popen(bash_cmd.split(), stdout=subprocess.PIPE)
-# output, error = process.communicate()
-# if not error:
-#     print("Logged succesfully into wandb")
-
 
 def compare():
     for method in methods:

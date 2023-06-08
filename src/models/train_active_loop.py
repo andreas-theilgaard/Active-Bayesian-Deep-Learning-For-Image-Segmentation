@@ -59,9 +59,7 @@ def train(
     torch.backends.cudnn.benchmark = False
 
     n_classes = 1 if binary else Config.n_classes[dataset]  # out channels to use for U-Net
-    in_ch = (
-        1 if dataset != "warwick" else 3
-    )  # Only warwick is RGB color coded : TODO adjust such that agnostic
+    in_ch = 1 if dataset != "warwick" else 3  # Only warwick is RGB color coded :
 
     start = time.time()  # initialize time to track how long training takes
 
@@ -599,6 +597,8 @@ def run_active(
                 torch_seeds=torch_seeds,
                 dataset=dataset,
                 device=device,
+                train_loader=train_loader,
+                binary=binary,
             )
             # Get Mean Predictions For Ensemble
             mean_predictions = torch.mean(torch.sigmoid(predictions), dim=1)
@@ -640,6 +640,31 @@ def run_active(
             train_loader=train_loader,
             binary=binary,
         )
+
+        images, masks, predictions, prediction_idx = inference(
+            models=models_list,
+            model_params=model_params,
+            data_loader=unlabeled_loader,
+            method=model_method,
+            seed=seed,
+            torch_seeds=torch_seeds,
+            dataset=dataset,
+            device=device,
+            train_loader=train_loader,
+            binary=binary,
+        )
+        if model_method != "BatchNorm":
+            mean_predictions = torch.mean(torch.sigmoid(predictions), dim=1)
+            mean_predictions = mean_predictions.permute(0, 3, 1, 2)
+            assert (
+                np.sum(
+                    np.array(list(mean_predictions.shape))
+                    == np.array([mean_predictions.shape[0], 1, 64, 64])
+                )
+                == 4
+            )
+        else:
+            mean_predictions = torch.sigmoid(predictions)
 
         # Add Label To train pool
         train_idx += next_labels

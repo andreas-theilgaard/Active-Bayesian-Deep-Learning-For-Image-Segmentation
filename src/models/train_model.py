@@ -9,7 +9,7 @@ from src.data.dataloader import train_split
 import wandb
 import time
 import hydra
-from src.models.util_models import init_params
+from src.models.util_models import init_params, EarlyStopping
 from omegaconf import OmegaConf
 import random
 import numpy as np
@@ -32,6 +32,7 @@ def train(
     turn_off_wandb=False,
     torch_seed=17,
     save_model=None,  # Model Path To Where Model Should Be Saved
+    Earlystopping_=False,
 ):
 
     cfg = OmegaConf.load("src/configs/base.yaml")  # Load configurations from yaml file
@@ -46,9 +47,7 @@ def train(
     torch.backends.cudnn.benchmark = False
 
     n_classes = 1 if binary else Config.n_classes[dataset]  # out channels to use for U-Net
-    in_ch = (
-        1 if dataset != "warwick" else 3
-    )  # Only warwick is RGB color coded : TODO adjust such that agnostic
+    in_ch = 1 if dataset != "warwick" else 3  # Only warwick is RGB color coded
 
     start = time.time()  # initialize time to track how long training takes
 
@@ -74,6 +73,8 @@ def train(
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, "min", patience=10, factor=0.1, threshold=0.001
     )
+    EarlyStopper = EarlyStopping(tolerance=20)
+
     MetricsTrain = CollectMetrics(validation=False, device=device, out_ch=model.out_ch)
     MetricsValidate = CollectMetrics(validation=True, device=device, out_ch=model.out_ch)
 
@@ -176,7 +177,11 @@ def train(
         MetricsValidate.AppendToGlobal({"Logits": predictions_vec.squeeze(1), "Masks": masks_vec})
         # Scheduler step
         scheduler.step(MetricsValidate.loss_global[-1])
-
+        if Earlystopping_:
+            EarlyStopper(MetricsValidate.loss_global[-1])
+            if EarlyStopper.early_stop:
+                print(f"Early Stopping At epoch {epoch}/{epochs}")
+                break
         # Put Model Back In Train Mode
         model.train()
 

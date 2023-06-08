@@ -6,18 +6,10 @@ Active Bayesian Deep Learning For Image Segmentation
 [![build status](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/windows.yml/badge.svg)](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/windows.yml)
 [![build status](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/Coverage_Report.yml/badge.svg)](https://github.com/andreas-theilgaard/Active-Bayesian-Deep-Learning-For-Image-Segmentation/actions/workflows/Coverage_Report.yml)
 
-Project Under Development
-
-TO DO Laplace
-- [ ] Clean Up
-- [ ] KFAC For Multisetting Using Backpack
-- [ ] Modify to Multiclass prediction
-
 # Contents
 - [Project Setup](#Project-Setup)
 - [Adding A New Dataset](#adding-a-new-dataset)
 - [Project Organization](#project-organization)
-
 
 # Project Setup
 <details>
@@ -136,4 +128,14 @@ Project Organization
 
 --------
 
+</details>
+
+# Running Experiments
+
+<details>
+<summary>
+Running Experiments
+</summary>
+The various experiments can be executed under ```src/experiments/```.
+It is recommended to use a GPU.
 </details>

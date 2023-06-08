@@ -43,7 +43,7 @@ methods = {
 AcquisitionFunctions = ["Random", "ShanonEntropy", "BALD", "JensenDivergence"]
 
 # Methods that will be applied for this run
-apply_methods = ["BatchNorm", "MCD"]
+apply_methods = ["BatchNorm", "MCD", "DeepEnsemble", "Laplace"]
 
 
 def active_trainer():

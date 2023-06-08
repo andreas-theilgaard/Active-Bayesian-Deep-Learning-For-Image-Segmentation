@@ -3,8 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-type_ = "max"
-# type_ = 'last'
+# type_ = "max"
+type_ = "last"
 
 datasets = ["PhC-C2DH-U373", "membrane", "warwick", "DIC_C2DH_Hela"]
 for dataset in datasets:
@@ -22,7 +22,7 @@ title_mapper = {
 
 colors = ["black", "mediumpurple", "deeppink", "darkgreen"]
 
-metric = "val_dice"  # ,'val_ECE'
+metric = "val_dice"
 
 
 def get_MAP_perform(dataset):
@@ -119,5 +119,5 @@ for i, dataset in enumerate(datasets):
         linestyle="dotted",
     )
 
-plt.savefig(f"AL_tmp_results_{metric}.png", dpi=1200)
-# plt.show()
+plt.savefig(f"AL_tmp_results_{metric}.png", dpi=300)
+plt.show()
